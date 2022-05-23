@@ -17,7 +17,7 @@ func Handler(repo storage.Repository) http.HandlerFunc {
 			rw.Write([]byte("only post method support"))
 		}
 
-		//! Content-Type только тот что  указан в задании
+		//! Content-Type только тот, что указан в задании
 		if r.Header.Get("Content-Type") != "text/plain" {
 			rw.WriteHeader(http.StatusInternalServerError)
 			rw.Write([]byte("incorrect Content-Type"))
@@ -26,7 +26,7 @@ func Handler(repo storage.Repository) http.HandlerFunc {
 
 		//! Мы должны иметь три параметра все остальное отлуп
 		if len(args) != 3 {
-			rw.WriteHeader(http.StatusInternalServerError)
+			rw.WriteHeader(http.StatusNotFound)
 			rw.Write([]byte("incorrect format"))
 			return
 		}
@@ -39,12 +39,11 @@ func Handler(repo storage.Repository) http.HandlerFunc {
 			value, err := strconv.ParseFloat(args[2], 64)
 			//! Второй параметр обязательно кастится в float64
 			if err != nil {
-				rw.WriteHeader(http.StatusInternalServerError)
+				rw.WriteHeader(http.StatusBadRequest)
 				rw.Write([]byte("incorrect metric value"))
 				return
 			}
 			err = repo.UpdateGauge(name, value)
-			//! Сейчас проблема только одна - ошибка при кривом имени метрики
 			if err != nil {
 				rw.WriteHeader(http.StatusInternalServerError)
 				rw.Write([]byte("incorrect metric name "))
@@ -54,7 +53,7 @@ func Handler(repo storage.Repository) http.HandlerFunc {
 			value, err := strconv.ParseInt(args[1], 10, 64)
 			//! Второй параметр обязательно кастится в int64
 			if err != nil {
-				rw.WriteHeader(http.StatusInternalServerError)
+				rw.WriteHeader(http.StatusBadRequest)
 				rw.Write([]byte("incorrect metric value"))
 				return
 			}
@@ -65,6 +64,9 @@ func Handler(repo storage.Repository) http.HandlerFunc {
 				rw.Write([]byte("incorrect metric name "))
 				return
 			}
+		default:
+			rw.WriteHeader(http.StatusNotImplemented)
+			rw.Write([]byte("incorrect metric type"))
 		}
 
 		rw.WriteHeader(http.StatusOK)

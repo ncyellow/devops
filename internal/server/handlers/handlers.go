@@ -17,13 +17,6 @@ func Handler(repo storage.Repository) http.HandlerFunc {
 			rw.Write([]byte("only post method support"))
 		}
 
-		//! Content-Type только тот, что указан в задании
-		if r.Header.Get("Content-Type") != "text/plain" {
-			rw.WriteHeader(http.StatusInternalServerError)
-			rw.Write([]byte("incorrect Content-Type"))
-			return
-		}
-
 		//! Мы должны иметь три параметра все остальное отлуп
 		if len(args) != 3 {
 			rw.WriteHeader(http.StatusNotFound)

@@ -66,17 +66,6 @@ func TestGaugeHandler(t *testing.T) {
 			},
 		},
 		{
-			name:        "wrong contentType",
-			request:     "/update/gauge/Alloc/1.00001",
-			contentType: "application/json",
-			want: want{
-				statusCode: http.StatusInternalServerError,
-				nameMetric: "Alloc",
-				typeMetric: "gauge",
-				value:      1.00001,
-			},
-		},
-		{
 			name:        "add gauge metric without id",
 			request:     "/update/gauge/",
 			contentType: "text/plain",
@@ -121,6 +110,7 @@ func TestGaugeHandler(t *testing.T) {
 			h := http.HandlerFunc(Handler(repo))
 			h.ServeHTTP(w, request)
 			result := w.Result()
+			defer result.Body.Close()
 
 			//! Проверяем что код ответа корректный
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)

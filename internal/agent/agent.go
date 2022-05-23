@@ -73,6 +73,10 @@ func (collector *Agent) sendToServer() {
 func (collector *Agent) Run() error {
 	tickerPoll := time.NewTicker(pollInterval)
 	tickerReport := time.NewTicker(reportInterval)
+
+	defer tickerPoll.Stop()
+	defer tickerReport.Stop()
+
 	signalChanel := make(chan os.Signal, 1)
 	signal.Notify(signalChanel,
 		syscall.SIGINT,

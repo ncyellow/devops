@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -60,14 +61,22 @@ func (collector *Agent) sendToServer() {
 	}
 	for name, value := range data {
 		url := fmt.Sprintf("http://%s/update/gauge/%s/%f", "127.0.0.1:8080", name, value)
-		http.Post(url, "text/plain", nil)
+		resp, err := http.Post(url, "text/plain", nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		resp.Body.Close()
 	}
 
 	url := fmt.Sprintf("http://%s/update/counter/%s/%d",
 		"127.0.0.1:8080",
 		"PollCount",
 		collector.metrics.PollCount)
-	http.Post(url, "text/plain", nil)
+	resp, err := http.Post(url, "text/plain", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	resp.Body.Close()
 }
 
 func (collector *Agent) Run() error {
@@ -83,7 +92,7 @@ func (collector *Agent) Run() error {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 
-	for true {
+	for {
 		select {
 		case <-tickerPoll.C:
 			//! Обновляем все стандартные метрики

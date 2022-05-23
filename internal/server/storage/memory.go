@@ -1,9 +1,8 @@
 package storage
 
 type MapRepository struct {
-	gauges           map[string]float64
-	counters         map[string]int64
-	availableMetrics []string
+	gauges   map[string]float64
+	counters map[string]int64
 }
 
 func NewRepository() Repository {

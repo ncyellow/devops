@@ -20,8 +20,7 @@ func main() {
 		Handler: nil,
 	}
 
-	http.HandleFunc("/update/gauge/", handlers.Handler(repo))
-	http.HandleFunc("/update/counter/", handlers.Handler(repo))
+	http.HandleFunc("/update/", handlers.Handler(repo))
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)

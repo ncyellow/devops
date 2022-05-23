@@ -15,6 +15,7 @@ func Handler(repo storage.Repository) http.HandlerFunc {
 		if r.Method != http.MethodPost {
 			rw.WriteHeader(http.StatusInternalServerError)
 			rw.Write([]byte("only post method support"))
+			return
 		}
 
 		//! Мы должны иметь три параметра все остальное отлуп
@@ -60,6 +61,7 @@ func Handler(repo storage.Repository) http.HandlerFunc {
 		default:
 			rw.WriteHeader(http.StatusNotImplemented)
 			rw.Write([]byte("incorrect metric type"))
+			return
 		}
 
 		rw.WriteHeader(http.StatusOK)

@@ -111,5 +111,4 @@ func (collector *Agent) Run() error {
 			return nil
 		}
 	}
-	return nil
 }

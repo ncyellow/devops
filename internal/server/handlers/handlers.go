@@ -50,7 +50,7 @@ func Handler(repo storage.Repository) http.HandlerFunc {
 				return
 			}
 		case "counter":
-			value, err := strconv.ParseInt(args[1], 10, 64)
+			value, err := strconv.ParseInt(args[2], 10, 64)
 			//! Второй параметр обязательно кастится в int64
 			if err != nil {
 				rw.WriteHeader(http.StatusBadRequest)

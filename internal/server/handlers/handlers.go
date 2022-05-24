@@ -9,17 +9,19 @@ import (
 	"strconv"
 )
 
+// NewRouter создает chi.NewRouter и описывает маршрутизацию по url
 func NewRouter(repo storage.Repository) chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 
-	r.Get("/", MetricListHandler(repo))
-	r.Get("/value/{metricType}/{metricName}", MetricValueHandler(repo))
-	r.Post("/update/{metricType}/{metricName}/{metricValue}", MetricUpdateHandler(repo))
+	r.Get("/", ListHandler(repo))
+	r.Get("/value/{metricType}/{metricName}", ValueHandler(repo))
+	r.Post("/update/{metricType}/{metricName}/{metricValue}", UpdateHandler(repo))
 	return r
 }
 
-func MetricValueHandler(repo storage.Repository) http.HandlerFunc {
+// ValueHandler обрабатывает GET запросы на чтение значения метрик. Пример /value/counter/counterName
+func ValueHandler(repo storage.Repository) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
@@ -48,7 +50,8 @@ func MetricValueHandler(repo storage.Repository) http.HandlerFunc {
 	}
 }
 
-func MetricUpdateHandler(repo storage.Repository) http.HandlerFunc {
+// UpdateHandler обрабатывает POST запросы на обновление значения метрик. Пример /update/counter/counterName/100
+func UpdateHandler(repo storage.Repository) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 
 		//! Метод только post
@@ -103,9 +106,10 @@ func MetricUpdateHandler(repo storage.Repository) http.HandlerFunc {
 	}
 }
 
-func MetricListHandler(repo storage.Repository) http.HandlerFunc {
+// ListHandler обрабатывает GET запросы на корень url. Возвращает список всех метрик + значение
+func ListHandler(repo storage.Repository) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusOK)
-		rw.Write([]byte("this is all metrics"))
+		rw.Write([]byte(repo.String()))
 	}
 }

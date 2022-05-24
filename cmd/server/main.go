@@ -23,5 +23,4 @@ func main() {
 		}
 	}()
 	<-done
-	log.Print("Server Exited Properly")
 }

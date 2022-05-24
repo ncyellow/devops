@@ -17,21 +17,31 @@ const (
 	reportInterval = time.Second * 10
 )
 
+// Config содержит параметры по настройке агента
 type Config struct {
+	// Host строка в формате localhost:8080
 	Host string
 }
 
+// Metrics текущее состояние всех метрик обновляются с интервалом pollInterval
 type Metrics struct {
 	PollCount   int64
 	RandomValue float64
 	runtime.MemStats
 }
 
+// Agent опрашивает метрики и отправляет их на сервер с интервалом reportInterval.
+// Пример запуска:
+//	conf := agent.Config{
+//		Host: "localhost:8080",
+//	}
+//	collector := agent.Agent{Conf: conf}
 type Agent struct {
 	Conf    Config
 	metrics Metrics
 }
 
+// sendToServer отправка метрик на сервер
 func (collector *Agent) sendToServer() {
 	//! приводим все метрики к нужным типам.
 	var data = map[string]float64{
@@ -85,6 +95,7 @@ func (collector *Agent) sendToServer() {
 	resp.Body.Close()
 }
 
+// Run запускает цикл по обработке таймеров и ожидания сигналов от ОС
 func (collector *Agent) Run() error {
 	tickerPoll := time.NewTicker(pollInterval)
 	tickerReport := time.NewTicker(reportInterval)

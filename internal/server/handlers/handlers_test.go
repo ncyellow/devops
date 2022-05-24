@@ -24,6 +24,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 	return resp, string(respBody)
 }
 
+// TestRouter тесты по запросам к различным url
 func TestRouter(t *testing.T) {
 	repo := storage.NewRepository()
 	r := NewRouter(repo)

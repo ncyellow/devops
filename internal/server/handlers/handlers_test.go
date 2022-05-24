@@ -147,7 +147,22 @@ func TestRouter(t *testing.T) {
 			requestType: "GET",
 			want: want{
 				statusCode: http.StatusOK,
-				body:       "this is all metrics",
+				body: `
+	<html>
+	<body>
+	<h1>All metrics</h1>
+	<h3>gauges</h3>
+	<ul>
+	  <li>testGauge : 100.000</li>
+
+	</ul>
+	<h3>counters</h3>
+	<ul>
+	  <li>testCounter : 100</li>
+
+	</ul>
+	</body>
+	</html>`,
 			},
 		},
 	}

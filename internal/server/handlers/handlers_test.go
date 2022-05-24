@@ -21,8 +21,6 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 	respBody, err := ioutil.ReadAll(resp.Body)
 	require.NoError(t, err)
 
-	defer resp.Body.Close()
-
 	return resp, string(respBody)
 }
 
@@ -157,6 +155,7 @@ func TestRouter(t *testing.T) {
 		resp, body := testRequest(t, ts, tt.requestType, tt.request)
 		assert.Equal(t, tt.want.statusCode, resp.StatusCode, tt.name)
 		assert.Equal(t, tt.want.body, body, tt.name)
+		resp.Body.Close()
 	}
 
 }

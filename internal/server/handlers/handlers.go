@@ -27,7 +27,7 @@ func MetricValueHandler(repo storage.Repository) http.HandlerFunc {
 		case storage.Gauge:
 			val, ok := repo.Gauge(metricName)
 			if ok {
-				rw.Write([]byte(fmt.Sprintf("%f", val)))
+				rw.Write([]byte(fmt.Sprintf("%.03f", val)))
 				return
 			} else {
 				rw.WriteHeader(http.StatusNotFound)

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"github.com/ncyellow/devops/internal/server/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -121,6 +122,15 @@ func TestRouter(t *testing.T) {
 			want: want{
 				statusCode: http.StatusNotFound,
 				body:       "",
+			},
+		},
+		{
+			name:        "get correct gauge value",
+			request:     "/value/gauge/testGauge",
+			requestType: "GET",
+			want: want{
+				statusCode: http.StatusOK,
+				body:       fmt.Sprintf("%.3f", 100.0),
 			},
 		},
 		{

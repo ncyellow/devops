@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -16,6 +17,10 @@ const (
 	reportInterval = time.Second * 10
 )
 
+type Config struct {
+	Host string
+}
+
 type Metrics struct {
 	PollCount   int64
 	RandomValue float64
@@ -23,6 +28,7 @@ type Metrics struct {
 }
 
 type Agent struct {
+	Conf    Config
 	metrics Metrics
 }
 
@@ -59,27 +65,40 @@ func (collector *Agent) sendToServer() {
 		"RandomValue":   collector.metrics.RandomValue,
 	}
 	for name, value := range data {
-		url := fmt.Sprintf("http://%s/update/gauge/%s/%f", "127.0.0.1:8080", name, value)
-		http.Post(url, "text/plain", nil)
+		url := fmt.Sprintf("http://%s/update/gauge/%s/%f", collector.Conf.Host, name, value)
+		resp, err := http.Post(url, "text/plain", nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		resp.Body.Close()
 	}
 
 	url := fmt.Sprintf("http://%s/update/counter/%s/%d",
-		"127.0.0.1:8080",
+		collector.Conf.Host,
 		"PollCount",
 		collector.metrics.PollCount)
-	http.Post(url, "text/plain", nil)
+
+	resp, err := http.Post(url, "text/plain", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	resp.Body.Close()
 }
 
 func (collector *Agent) Run() error {
 	tickerPoll := time.NewTicker(pollInterval)
 	tickerReport := time.NewTicker(reportInterval)
+
+	defer tickerPoll.Stop()
+	defer tickerReport.Stop()
+
 	signalChanel := make(chan os.Signal, 1)
 	signal.Notify(signalChanel,
 		syscall.SIGINT,
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 
-	for true {
+	for {
 		select {
 		case <-tickerPoll.C:
 			//! Обновляем все стандартные метрики
@@ -98,5 +117,4 @@ func (collector *Agent) Run() error {
 			return nil
 		}
 	}
-	return nil
 }

@@ -6,6 +6,9 @@ import (
 )
 
 func main() {
-	collector := agent.Agent{}
+	conf := agent.Config{
+		Host: "localhost:8080",
+	}
+	collector := agent.Agent{Conf: conf}
 	log.Fatal(collector.Run())
 }

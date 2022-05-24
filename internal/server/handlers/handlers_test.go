@@ -3,127 +3,150 @@ package handlers
 import (
 	"github.com/ncyellow/devops/internal/server/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-func TestGaugeHandler(t *testing.T) {
+func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.Response, string) {
+	req, err := http.NewRequest(method, ts.URL+path, nil)
+	require.NoError(t, err)
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	defer resp.Body.Close()
+
+	return resp, string(respBody)
+}
+
+func TestRouter(t *testing.T) {
+	repo := storage.NewRepository()
+	r := NewRouter(repo)
+
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+
 	type want struct {
 		statusCode int
-		nameMetric string
-		typeMetric string
-		value      float64
+		body       string
 	}
 	tests := []struct {
 		name        string
 		request     string
-		contentType string
+		requestType string
 		want        want
 	}{
 		{
 			name:        "add counter metric with correct data",
 			request:     "/update/counter/testCounter/100",
-			contentType: "text/plain",
+			requestType: "POST",
 			want: want{
 				statusCode: http.StatusOK,
-				nameMetric: "testCounter",
-				typeMetric: "counter",
-				value:      100,
+				body:       "ok",
 			},
 		},
 		{
 			name:        "add counter metric without id",
 			request:     "/update/counter/",
-			contentType: "text/plain",
+			requestType: "POST",
 			want: want{
 				statusCode: http.StatusNotFound,
-				nameMetric: "testCounter",
-				typeMetric: "counter",
-				value:      0,
+				body:       "404 page not found\n",
 			},
 		},
 		{
 			name:        "counter invalid value",
 			request:     "/update/counter/testCounter/none",
-			contentType: "text/plain",
+			requestType: "POST",
 			want: want{
 				statusCode: http.StatusBadRequest,
-				nameMetric: "testCounter",
-				typeMetric: "counter",
-				value:      0,
+				body:       "incorrect metric value",
 			},
 		},
 		{
 			name:        "add gauge metric with correct data",
 			request:     "/update/gauge/testGauge/100",
-			contentType: "text/plain",
+			requestType: "POST",
 			want: want{
 				statusCode: http.StatusOK,
-				nameMetric: "testGauge",
-				typeMetric: "gauge",
-				value:      100,
+				body:       "ok",
 			},
 		},
 		{
 			name:        "add gauge metric without id",
 			request:     "/update/gauge/",
-			contentType: "text/plain",
+			requestType: "POST",
 			want: want{
 				statusCode: http.StatusNotFound,
-				nameMetric: "testGauge",
-				typeMetric: "gauge",
-				value:      0,
+				body:       "404 page not found\n",
 			},
 		},
 		{
 			name:        "gauge invalid value",
 			request:     "/update/gauge/testGauge/none",
-			contentType: "text/plain",
+			requestType: "POST",
 			want: want{
 				statusCode: http.StatusBadRequest,
-				nameMetric: "testGauge",
-				typeMetric: "gauge",
-				value:      0,
+				body:       "incorrect metric value",
 			},
 		},
 		{
 			name:        "invalid update type",
 			request:     "/update/unknown/testCounter/100",
-			contentType: "text/plain",
+			requestType: "POST",
 			want: want{
 				statusCode: http.StatusNotImplemented,
-				nameMetric: "testCounter",
-				typeMetric: "unknown",
-				value:      0,
+				body:       "incorrect metric type",
+			},
+		},
+		{
+			name:        "get correct counter value",
+			request:     "/value/counter/testCounter",
+			requestType: "GET",
+			want: want{
+				statusCode: http.StatusOK,
+				body:       "100",
+			},
+		},
+		{
+			name:        "get unknown counter value",
+			request:     "/value/counter/unknownCounter",
+			requestType: "GET",
+			want: want{
+				statusCode: http.StatusNotFound,
+				body:       "",
+			},
+		},
+		{
+			name:        "get unknown gauge value",
+			request:     "/value/gauge/unknownGauge",
+			requestType: "GET",
+			want: want{
+				statusCode: http.StatusNotFound,
+				body:       "",
+			},
+		},
+		{
+			name:        "list all metrics",
+			request:     "/",
+			requestType: "GET",
+			want: want{
+				statusCode: http.StatusOK,
+				body:       "this is all metrics",
 			},
 		},
 	}
 
-	repo := storage.NewRepository()
-
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
-			request.Header.Set("Content-Type", tt.contentType)
-			w := httptest.NewRecorder()
-			h := http.HandlerFunc(Handler(repo))
-			h.ServeHTTP(w, request)
-			result := w.Result()
-			defer result.Body.Close()
-
-			//! Проверяем что код ответа корректный
-			assert.Equal(t, tt.want.statusCode, result.StatusCode)
-			//! Если код ответа ок значит, то значит надо проверить корректно ли записалось значения метрики
-			if result.StatusCode == http.StatusOK {
-				if tt.want.typeMetric == "gauge" {
-					val, _ := repo.Gauge(tt.want.nameMetric)
-					assert.Equal(t, tt.want.value, val, tt.name)
-				} else {
-					val, _ := repo.Counter(tt.want.nameMetric)
-					assert.Equal(t, int64(tt.want.value), val, tt.name)
-				}
-			}
-		})
+		resp, body := testRequest(t, ts, tt.requestType, tt.request)
+		assert.Equal(t, tt.want.statusCode, resp.StatusCode, tt.name)
+		assert.Equal(t, tt.want.body, body, tt.name)
 	}
+
 }

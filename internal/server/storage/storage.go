@@ -1,5 +1,10 @@
 package storage
 
+const (
+	Gauge   = "gauge"
+	Counter = "counter"
+)
+
 type Repository interface {
 	UpdateGauge(name string, value float64) error
 	UpdateCounter(name string, value int64) error

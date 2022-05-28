@@ -44,37 +44,8 @@ type Agent struct {
 // sendToServer отправка метрик на сервер
 func (collector *Agent) sendToServer() {
 	//! приводим все метрики к нужным типам.
-	var data = map[string]float64{
-		"Alloc":         float64(collector.metrics.Alloc),
-		"BuckHashSys":   float64(collector.metrics.BuckHashSys),
-		"Frees":         float64(collector.metrics.Frees),
-		"GCCPUFraction": collector.metrics.GCCPUFraction,
-		"GCSys":         float64(collector.metrics.GCSys),
-		"HeapAlloc":     float64(collector.metrics.HeapAlloc),
-		"HeapIdle":      float64(collector.metrics.HeapIdle),
-		"HeapInuse":     float64(collector.metrics.HeapInuse),
-		"HeapObjects":   float64(collector.metrics.HeapObjects),
-		"HeapReleased":  float64(collector.metrics.HeapReleased),
-		"HeapSys":       float64(collector.metrics.HeapSys),
-		"LastGC":        float64(collector.metrics.LastGC),
-		"Lookups":       float64(collector.metrics.Lookups),
-		"MCacheInuse":   float64(collector.metrics.MCacheInuse),
-		"MCacheSys":     float64(collector.metrics.MCacheSys),
-		"MSpanInuse":    float64(collector.metrics.MSpanInuse),
-		"MSpanSys":      float64(collector.metrics.MSpanSys),
-		"Mallocs":       float64(collector.metrics.Mallocs),
-		"NextGC":        float64(collector.metrics.NextGC),
-		"NumForcedGC":   float64(collector.metrics.NumForcedGC),
-		"NumGC":         float64(collector.metrics.NumGC),
-		"OtherSys":      float64(collector.metrics.OtherSys),
-		"PauseTotalNs":  float64(collector.metrics.PauseTotalNs),
-		"StackInuse":    float64(collector.metrics.StackInuse),
-		"StackSys":      float64(collector.metrics.StackSys),
-		"Sys":           float64(collector.metrics.Sys),
-		"TotalAlloc":    float64(collector.metrics.TotalAlloc),
-		"RandomValue":   collector.metrics.RandomValue,
-	}
-	for name, value := range data {
+	gauges := prepareGauges(&collector.metrics)
+	for name, value := range gauges {
 		url := fmt.Sprintf("http://%s/update/gauge/%s/%f", collector.Conf.Host, name, value)
 		resp, err := http.Post(url, "text/plain", nil)
 		if err != nil {
@@ -83,16 +54,15 @@ func (collector *Agent) sendToServer() {
 		resp.Body.Close()
 	}
 
-	url := fmt.Sprintf("http://%s/update/counter/%s/%d",
-		collector.Conf.Host,
-		"PollCount",
-		collector.metrics.PollCount)
-
-	resp, err := http.Post(url, "text/plain", nil)
-	if err != nil {
-		log.Fatal(err)
+	counters := prepareCounters(&collector.metrics)
+	for name, value := range counters {
+		url := fmt.Sprintf("http://%s/update/counter/%s/%d", collector.Conf.Host, name, value)
+		resp, err := http.Post(url, "text/plain", nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		resp.Body.Close()
 	}
-	resp.Body.Close()
 }
 
 // Run запускает цикл по обработке таймеров и ожидания сигналов от ОС
@@ -127,5 +97,48 @@ func (collector *Agent) Run() error {
 			//! Корректный выход без ошибок по указанным сигналам
 			return nil
 		}
+	}
+}
+
+// prepareGauges - готовит map[string]float64 с метриками gauges для отправки на сервер,
+// так как класс метрики довольно жирный передает через указатель
+func prepareGauges(metrics *Metrics) map[string]float64 {
+	return map[string]float64{
+		"Alloc":         float64(metrics.Alloc),
+		"BuckHashSys":   float64(metrics.BuckHashSys),
+		"Frees":         float64(metrics.Frees),
+		"GCCPUFraction": metrics.GCCPUFraction,
+		"GCSys":         float64(metrics.GCSys),
+		"HeapAlloc":     float64(metrics.HeapAlloc),
+		"HeapIdle":      float64(metrics.HeapIdle),
+		"HeapInuse":     float64(metrics.HeapInuse),
+		"HeapObjects":   float64(metrics.HeapObjects),
+		"HeapReleased":  float64(metrics.HeapReleased),
+		"HeapSys":       float64(metrics.HeapSys),
+		"LastGC":        float64(metrics.LastGC),
+		"Lookups":       float64(metrics.Lookups),
+		"MCacheInuse":   float64(metrics.MCacheInuse),
+		"MCacheSys":     float64(metrics.MCacheSys),
+		"MSpanInuse":    float64(metrics.MSpanInuse),
+		"MSpanSys":      float64(metrics.MSpanSys),
+		"Mallocs":       float64(metrics.Mallocs),
+		"NextGC":        float64(metrics.NextGC),
+		"NumForcedGC":   float64(metrics.NumForcedGC),
+		"NumGC":         float64(metrics.NumGC),
+		"OtherSys":      float64(metrics.OtherSys),
+		"PauseTotalNs":  float64(metrics.PauseTotalNs),
+		"StackInuse":    float64(metrics.StackInuse),
+		"StackSys":      float64(metrics.StackSys),
+		"Sys":           float64(metrics.Sys),
+		"TotalAlloc":    float64(metrics.TotalAlloc),
+		"RandomValue":   metrics.RandomValue,
+	}
+}
+
+// prepareCounters - готовит map[string]int64 с метриками counter для отправки на сервер,
+// пока такая метрика одна, но для обобщения сделан сразу метод
+func prepareCounters(metrics *Metrics) map[string]int64 {
+	return map[string]int64{
+		"PollCount": metrics.PollCount,
 	}
 }

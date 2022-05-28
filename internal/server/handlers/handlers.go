@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"fmt"
+	"net/http"
+	"strconv"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/ncyellow/devops/internal/server/storage"
-	"net/http"
-	"strconv"
 )
 
 // NewRouter создает chi.NewRouter и описывает маршрутизацию по url

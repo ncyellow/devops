@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/ncyellow/devops/internal/server/handlers"
-	"github.com/ncyellow/devops/internal/server/storage"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/ncyellow/devops/internal/server/handlers"
+	"github.com/ncyellow/devops/internal/server/storage"
 )
 
 func main() {

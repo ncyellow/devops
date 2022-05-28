@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/ncyellow/devops/internal/agent"
 	"log"
+
+	"github.com/ncyellow/devops/internal/agent"
 )
 
 func main() {

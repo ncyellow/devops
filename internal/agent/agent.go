@@ -54,7 +54,7 @@ func (collector *Agent) sendToServer() {
 
 		metric := storage.Metrics{
 			ID:    name,
-			MType: storage.Counter,
+			MType: storage.Gauge,
 			Value: &value,
 		}
 

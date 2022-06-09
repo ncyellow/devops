@@ -55,6 +55,34 @@ func (s *MapRepository) Counter(name string) (val int64, ok bool) {
 	return
 }
 
+func (s *MapRepository) Metric(name string, mType string) (val Metrics, ok bool) {
+	if mType == Gauge {
+		val, ok := s.Gauge(name)
+		if !ok {
+			return Metrics{}, ok
+		}
+		return Metrics{
+			ID:    name,
+			MType: mType,
+			Value: &val,
+			Delta: nil,
+		}, ok
+	}
+	if mType == Counter {
+		val, ok := s.Counter(name)
+		if !ok {
+			return Metrics{}, ok
+		}
+		return Metrics{
+			ID:    name,
+			MType: mType,
+			Value: nil,
+			Delta: &val,
+		}, ok
+	}
+	return Metrics{}, false
+}
+
 func (s *MapRepository) String() string {
 	htmlTmpl := `
 	<html>

@@ -129,6 +129,7 @@ func UpdateJSONHandler(repo storage.Repository) http.HandlerFunc {
 			return
 		}
 		reqBody, err := ioutil.ReadAll(r.Body)
+		defer r.Body.Close()
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			rw.Write([]byte("Read data problem"))
@@ -165,6 +166,7 @@ func ValueJSONHandler(repo storage.Repository) http.HandlerFunc {
 		}
 
 		reqBody, err := ioutil.ReadAll(r.Body)
+		defer r.Body.Close()
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			rw.Write([]byte("Read data problem"))
@@ -190,6 +192,7 @@ func ValueJSONHandler(repo storage.Repository) http.HandlerFunc {
 				rw.Write([]byte("invalid serialization"))
 				return
 			}
+			rw.Header().Set("Content-Type", "application/json")
 			rw.Write(result)
 			return
 		}

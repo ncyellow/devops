@@ -16,15 +16,11 @@ import (
 	"github.com/ncyellow/devops/internal/server/storage"
 )
 
-const (
-	pollInterval   = time.Second * 2
-	reportInterval = time.Second * 10
-)
-
 // Config содержит параметры по настройке агента
 type Config struct {
-	// Host строка в формате localhost:8080
-	Host string
+	Address        string        `env:"ADDRESS" envDefault:"localhost:8080"`
+	ReportInterval time.Duration `env:"REPORT_INTERVAL" envDefault:"10s"`
+	PollInterval   time.Duration `env:"POLL_INTERVAL" envDefault:"2s"`
 }
 
 // Metrics текущее состояние всех метрик обновляются с интервалом pollInterval
@@ -37,7 +33,7 @@ type Metrics struct {
 // Agent опрашивает метрики и отправляет их на сервер с интервалом reportInterval.
 // Пример запуска:
 //	conf := agent.Config{
-//		Host: "localhost:8080",
+//		Address: "localhost:8080",
 //	}
 //	collector := agent.Agent{Conf: conf}
 type Agent struct {
@@ -48,7 +44,7 @@ type Agent struct {
 // sendToServer отправка метрик на сервер
 func (collector *Agent) sendToServer() {
 	//! приводим все метрики к нужным типам.
-	url := fmt.Sprintf("http://%s/update/", collector.Conf.Host)
+	url := fmt.Sprintf("http://%s/update/", collector.Conf.Address)
 
 	gauges := prepareGauges(&collector.metrics)
 	for name, value := range gauges {
@@ -93,8 +89,9 @@ func (collector *Agent) sendToServer() {
 
 // Run запускает цикл по обработке таймеров и ожидания сигналов от ОС
 func (collector *Agent) Run() error {
-	tickerPoll := time.NewTicker(pollInterval)
-	tickerReport := time.NewTicker(reportInterval)
+
+	tickerPoll := time.NewTicker(collector.Conf.PollInterval)
+	tickerReport := time.NewTicker(collector.Conf.ReportInterval)
 
 	defer tickerPoll.Stop()
 	defer tickerReport.Stop()

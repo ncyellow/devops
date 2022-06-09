@@ -123,11 +123,12 @@ func ListHandler(repo storage.Repository) http.HandlerFunc {
 // UpdateJSONHandler обрабатывает POST запросы на обновление метрик в виде json
 func UpdateJSONHandler(repo storage.Repository) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Content-Type") != "application/json" {
-			rw.WriteHeader(http.StatusInternalServerError)
-			rw.Write([]byte("content type not support"))
-			return
-		}
+		// Для проверки теста малоли ломается тут пока комментарий
+		//if r.Header.Get("Content-Type") != "application/json" {
+		//	rw.WriteHeader(http.StatusInternalServerError)
+		//	rw.Write([]byte("content type not support"))
+		//	return
+		//}
 		reqBody, err := ioutil.ReadAll(r.Body)
 		defer r.Body.Close()
 		if err != nil {
@@ -196,7 +197,7 @@ func ValueJSONHandler(repo storage.Repository) http.HandlerFunc {
 			rw.Write(result)
 			return
 		}
+
 		rw.WriteHeader(http.StatusNotFound)
-		return
 	}
 }

@@ -48,10 +48,10 @@ type Agent struct {
 // sendToServer отправка метрик на сервер
 func (collector *Agent) sendToServer() {
 	//! приводим все метрики к нужным типам.
+	url := fmt.Sprintf("http://%s/update/", collector.Conf.Host)
+
 	gauges := prepareGauges(&collector.metrics)
 	for name, value := range gauges {
-		url := fmt.Sprintf("http://%s/update/", collector.Conf.Host)
-
 		metric := storage.Metrics{
 			ID:    name,
 			MType: storage.Gauge,
@@ -72,8 +72,6 @@ func (collector *Agent) sendToServer() {
 
 	counters := prepareCounters(&collector.metrics)
 	for name, value := range counters {
-		url := fmt.Sprintf("http://%s/update/", collector.Conf.Host)
-
 		metric := storage.Metrics{
 			ID:    name,
 			MType: storage.Counter,

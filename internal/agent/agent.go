@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -10,6 +12,8 @@ import (
 	"runtime"
 	"syscall"
 	"time"
+
+	"github.com/ncyellow/devops/internal/server/storage"
 )
 
 const (
@@ -46,8 +50,20 @@ func (collector *Agent) sendToServer() {
 	//! приводим все метрики к нужным типам.
 	gauges := prepareGauges(&collector.metrics)
 	for name, value := range gauges {
-		url := fmt.Sprintf("http://%s/update/gauge/%s/%f", collector.Conf.Host, name, value)
-		resp, err := http.Post(url, "text/plain", nil)
+		url := fmt.Sprintf("http://%s/update/", collector.Conf.Host)
+
+		metric := storage.Metrics{
+			ID:    name,
+			MType: storage.Counter,
+			Value: &value,
+		}
+
+		buf, err := json.Marshal(metric)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		resp, err := http.Post(url, "application/json", bytes.NewBuffer(buf))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -56,8 +72,20 @@ func (collector *Agent) sendToServer() {
 
 	counters := prepareCounters(&collector.metrics)
 	for name, value := range counters {
-		url := fmt.Sprintf("http://%s/update/counter/%s/%d", collector.Conf.Host, name, value)
-		resp, err := http.Post(url, "text/plain", nil)
+		url := fmt.Sprintf("http://%s/update/", collector.Conf.Host)
+
+		metric := storage.Metrics{
+			ID:    name,
+			MType: storage.Counter,
+			Delta: &value,
+		}
+
+		buf, err := json.Marshal(metric)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		resp, err := http.Post(url, "application/json", bytes.NewBuffer(buf))
 		if err != nil {
 			log.Fatal(err)
 		}

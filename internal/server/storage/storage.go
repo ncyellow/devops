@@ -33,6 +33,9 @@ type Repository interface {
 	// Metric возвращает значение метрики по названию
 	Metric(name string, mType string) (val Metrics, ok bool)
 
+	// UpdateMetric обновляет данные в хранилище по значению Metrics
+	UpdateMetric(metrics Metrics) error
+
 	// Stringer Вывод в строку всех метрик хранилища
 	fmt.Stringer
 }

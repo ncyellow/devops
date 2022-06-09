@@ -98,7 +98,7 @@ func UpdateHandler(repo storage.Repository) http.HandlerFunc {
 			//! Сейчас проблема только одна - ошибка при кривом имени метрики
 			if err != nil {
 				rw.WriteHeader(http.StatusInternalServerError)
-				rw.Write([]byte("incorrect metric name "))
+				rw.Write([]byte("incorrect metric name"))
 				return
 			}
 		default:
@@ -128,7 +128,29 @@ func UpdateJSONHandler(repo storage.Repository) http.HandlerFunc {
 			rw.Write([]byte("content type not support"))
 			return
 		}
-		rw.WriteHeader(http.StatusNotImplemented)
+		reqBody, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte("Read data problem"))
+			return
+		}
+		metric := storage.Metrics{}
+		err = json.Unmarshal(reqBody, &metric)
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte("invalid deserialization"))
+			return
+		}
+
+		err = repo.UpdateMetric(metric)
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte("incorrect metric type"))
+			return
+		}
+
+		rw.WriteHeader(http.StatusOK)
+		rw.Write([]byte("ok"))
 	}
 }
 

@@ -40,6 +40,15 @@ func (s *MapRepository) UpdateCounter(name string, value int64) error {
 	return nil
 }
 
+func (s *MapRepository) UpdateMetric(metric Metrics) error {
+	if metric.MType == Gauge {
+		return s.UpdateGauge(metric.ID, *metric.Value)
+	} else if metric.MType == Counter {
+		return s.UpdateCounter(metric.ID, *metric.Delta)
+	}
+	return fmt.Errorf("metric with type %s doesn't exsist", metric.MType)
+}
+
 func (s *MapRepository) Gauge(name string) (val float64, ok bool) {
 	s.gaugesLock.RLock()
 	val, ok = s.gauges[name]

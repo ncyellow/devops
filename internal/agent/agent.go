@@ -18,7 +18,7 @@ import (
 
 // Config содержит параметры по настройке агента
 type Config struct {
-	Address        string        `env:"ADDRESS" envDefault:"localhost:8080"`
+	Address        string        `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
 	ReportInterval time.Duration `env:"REPORT_INTERVAL" envDefault:"10s"`
 	PollInterval   time.Duration `env:"POLL_INTERVAL" envDefault:"2s"`
 }
@@ -58,10 +58,10 @@ func (collector *Agent) sendToServer() {
 		if err != nil {
 			log.Fatal(err)
 		}
-
 		resp, err := http.Post(url, "application/json", bytes.NewBuffer(buf))
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			continue
 		}
 		resp.Body.Close()
 	}
@@ -78,10 +78,10 @@ func (collector *Agent) sendToServer() {
 		if err != nil {
 			log.Fatal(err)
 		}
-
 		resp, err := http.Post(url, "application/json", bytes.NewBuffer(buf))
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			continue
 		}
 		resp.Body.Close()
 	}

@@ -16,22 +16,22 @@ func SaveToFile(fileName string, repo Repository) {
 	}
 
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0777)
-	defer file.Close()
 	if err != nil {
 		fmt.Printf("can't open file %s", fileName)
 		return
 	}
+	defer file.Close()
 	encoder := json.NewEncoder(file)
 	encoder.Encode(&repo)
 }
 
 func RestoreFromFile(fileName string, repo Repository) {
 	file, err := os.OpenFile(fileName, os.O_RDONLY, 0777)
-	defer file.Close()
 	if err != nil {
 		fmt.Printf("can't open file %s", fileName)
 		return
 	}
+	defer file.Close()
 	decoder := json.NewDecoder(file)
 	decoder.Decode(&repo)
 }
@@ -46,10 +46,8 @@ func RunStorageSaver(config config.Config, repo Repository) {
 	defer tickerStore.Stop()
 
 	for {
-		select {
-		case <-tickerStore.C:
-			//! сбрасываем на диск
-			SaveToFile(config.StoreFile, repo)
-		}
+		<-tickerStore.C
+		//! сбрасываем на диск
+		SaveToFile(config.StoreFile, repo)
 	}
 }

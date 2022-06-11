@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 )
@@ -123,4 +124,59 @@ func (s *MapRepository) String() string {
 	s.countersLock.RUnlock()
 
 	return fmt.Sprintf(htmlTmpl, gaugesText, countersText)
+}
+
+func (s *MapRepository) ToMetrics() []Metrics {
+	totalCount := len(s.gauges) + len(s.counters)
+	metrics := make([]Metrics, 0, totalCount)
+	for name, value := range s.gauges {
+		metrics = append(metrics, Metrics{
+			ID:    name,
+			MType: Gauge,
+			Value: &value,
+		})
+	}
+
+	for name, value := range s.counters {
+		metrics = append(metrics, Metrics{
+			ID:    name,
+			MType: Counter,
+			Delta: &value,
+		})
+	}
+	return metrics
+}
+
+func (s *MapRepository) FromMetrics(metrics []Metrics) {
+	for _, metric := range metrics {
+		switch metric.MType {
+		case Gauge:
+			if metric.Value != nil {
+				s.UpdateGauge(metric.ID, *metric.Value)
+			}
+		case Counter:
+			if metric.Value != nil {
+				s.UpdateCounter(metric.ID, *metric.Delta)
+			}
+		}
+	}
+}
+
+func (s *MapRepository) MarshalJSON() ([]byte, error) {
+	metrics := s.ToMetrics()
+	jsMetrics, err := json.Marshal(metrics)
+	if err != nil {
+		return []byte{}, nil
+	}
+	return jsMetrics, nil
+}
+
+func (s *MapRepository) UnmarshalJSON(data []byte) error {
+	var metrics []Metrics
+	err := json.Unmarshal(data, &metrics)
+	if err != nil {
+		return err
+	}
+	s.FromMetrics(metrics)
+	return nil
 }

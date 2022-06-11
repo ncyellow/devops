@@ -155,7 +155,7 @@ func (s *MapRepository) FromMetrics(metrics []Metrics) {
 				s.UpdateGauge(metric.ID, *metric.Value)
 			}
 		case Counter:
-			if metric.Value != nil {
+			if metric.Delta != nil {
 				s.UpdateCounter(metric.ID, *metric.Delta)
 			}
 		}

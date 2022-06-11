@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,6 +9,8 @@ import (
 
 // TestMapRepository Тестируем вставку и чтение в MapRepository для gauge
 func TestMapRepositoryGauge(t *testing.T) {
+	t.Parallel()
+
 	repo := NewRepository()
 
 	// обновление
@@ -35,6 +38,8 @@ func TestMapRepositoryGauge(t *testing.T) {
 
 // TestMapRepository Тестируем вставку и чтение в MapRepository для counter
 func TestMapRepositoryCounter(t *testing.T) {
+	t.Parallel()
+
 	repo := NewRepository()
 
 	// обновление
@@ -62,6 +67,8 @@ func TestMapRepositoryCounter(t *testing.T) {
 
 // TestMapRepository Тестируем вставку и чтение в MapRepository для counter
 func TestMapRepositoryMetricsCounter(t *testing.T) {
+	t.Parallel()
+
 	repo := NewRepository()
 
 	var updateValue int64 = 100
@@ -99,6 +106,8 @@ func TestMapRepositoryMetricsCounter(t *testing.T) {
 
 // TestMapRepository Тестируем вставку и чтение в MapRepository для gauge
 func TestMapRepositoryMetricsGauge(t *testing.T) {
+	t.Parallel()
+
 	repo := NewRepository()
 
 	// обновление
@@ -134,4 +143,40 @@ func TestMapRepositoryMetricsGauge(t *testing.T) {
 	// Проверка чтения неизвестного значения
 	_, ok = repo.Metric("unknownMetricGauge", Counter)
 	assert.Equal(t, ok, false)
+}
+
+// TestMarshalJSON сериализация в json
+func TestMarshalJSON(t *testing.T) {
+	t.Parallel()
+
+	repo := NewRepository()
+
+	err := repo.UpdateGauge("testGaugeMetric", 100)
+	assert.NoError(t, err)
+	err = repo.UpdateCounter("testCounterMetric", 120)
+	assert.NoError(t, err)
+
+	jsRepo, err := json.Marshal(repo)
+	assert.NoError(t, err)
+
+	assert.Equal(t, string(jsRepo), `[{"id":"testGaugeMetric","type":"gauge","value":100},{"id":"testCounterMetric","type":"counter","delta":120}]`)
+}
+
+// TestUnmarshalJSON тест десериализации из json
+func TestUnmarshalJSON(t *testing.T) {
+	t.Parallel()
+
+	repo := NewRepository()
+	data := []byte(`[{"id":"testGaugeMetric","type":"gauge","value":100},{"id":"testCounterMetric","type":"counter","delta":120}]`)
+
+	err := json.Unmarshal(data, &repo)
+	assert.NoError(t, err)
+
+	val, ok := repo.Gauge("testGaugeMetric")
+	assert.Equal(t, ok, true)
+	assert.Equal(t, val, float64(100))
+
+	delta, ok := repo.Counter("testCounterMetric")
+	assert.Equal(t, ok, true)
+	assert.Equal(t, delta, int64(120))
 }

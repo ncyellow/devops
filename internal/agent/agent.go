@@ -18,9 +18,9 @@ import (
 
 // Config содержит параметры по настройке агента
 type Config struct {
-	Address        string        `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
-	ReportInterval time.Duration `env:"REPORT_INTERVAL" envDefault:"10s"`
-	PollInterval   time.Duration `env:"POLL_INTERVAL" envDefault:"2s"`
+	Address        string        `env:"ADDRESS"`
+	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
+	PollInterval   time.Duration `env:"POLL_INTERVAL"`
 }
 
 // Metrics текущее состояние всех метрик обновляются с интервалом pollInterval

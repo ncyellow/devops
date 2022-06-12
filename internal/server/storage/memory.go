@@ -130,18 +130,20 @@ func (s *MapRepository) ToMetrics() []Metrics {
 	totalCount := len(s.gauges) + len(s.counters)
 	metrics := make([]Metrics, 0, totalCount)
 	for name, value := range s.gauges {
+		gaugeValue := value
 		metrics = append(metrics, Metrics{
 			ID:    name,
 			MType: Gauge,
-			Value: &value,
+			Value: &gaugeValue,
 		})
 	}
 
 	for name, value := range s.counters {
+		counterValue := value
 		metrics = append(metrics, Metrics{
 			ID:    name,
 			MType: Counter,
-			Delta: &value,
+			Delta: &counterValue,
 		})
 	}
 	return metrics

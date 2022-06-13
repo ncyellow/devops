@@ -117,6 +117,7 @@ func UpdateHandler(repo storage.Repository) http.HandlerFunc {
 // ListHandler обрабатывает GET запросы на корень url. Возвращает список всех метрик + значение
 func ListHandler(repo storage.Repository) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
+		rw.Header().Set("Content-Type", "text/html")
 		rw.WriteHeader(http.StatusOK)
 		rw.Write([]byte(repo.String()))
 	}

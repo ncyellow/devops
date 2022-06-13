@@ -9,7 +9,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/ncyellow/devops/internal/server/middlewares"
 	"github.com/ncyellow/devops/internal/server/storage"
 )
 
@@ -17,7 +16,8 @@ import (
 func NewRouter(repo storage.Repository) chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
-	r.Use(middlewares.EncoderGZIP)
+	r.Use(middleware.Compress(5))
+	//r.Use(middlewares.EncoderGZIP)
 
 	r.Get("/", ListHandler(repo))
 	r.Get("/value/{metricType}/{metricName}", ValueHandler(repo))

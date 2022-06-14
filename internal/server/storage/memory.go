@@ -126,9 +126,12 @@ func (s *MapRepository) String() string {
 	return fmt.Sprintf(htmlTmpl, gaugesText, countersText)
 }
 
-func (s *MapRepository) ToMetrics() []Metrics {
+// toMetrics Конвертация данных MapRepository в []Metrics
+func (s *MapRepository) toMetrics() []Metrics {
 	totalCount := len(s.gauges) + len(s.counters)
 	metrics := make([]Metrics, 0, totalCount)
+
+	s.gaugesLock.RLock()
 	for name, value := range s.gauges {
 		gaugeValue := value
 		metrics = append(metrics, Metrics{
@@ -137,7 +140,9 @@ func (s *MapRepository) ToMetrics() []Metrics {
 			Value: &gaugeValue,
 		})
 	}
+	s.gaugesLock.RUnlock()
 
+	s.countersLock.RLock()
 	for name, value := range s.counters {
 		counterValue := value
 		metrics = append(metrics, Metrics{
@@ -146,10 +151,12 @@ func (s *MapRepository) ToMetrics() []Metrics {
 			Delta: &counterValue,
 		})
 	}
+	s.countersLock.RUnlock()
 	return metrics
 }
 
-func (s *MapRepository) FromMetrics(metrics []Metrics) {
+// fromMetrics - обновляет метрики в MapRepository по []Metrics
+func (s *MapRepository) fromMetrics(metrics []Metrics) {
 	for _, metric := range metrics {
 		switch metric.MType {
 		case Gauge:
@@ -164,8 +171,9 @@ func (s *MapRepository) FromMetrics(metrics []Metrics) {
 	}
 }
 
+// MarshalJSON - реализация интерфейса Marshaler
 func (s *MapRepository) MarshalJSON() ([]byte, error) {
-	metrics := s.ToMetrics()
+	metrics := s.toMetrics()
 	jsMetrics, err := json.Marshal(metrics)
 	if err != nil {
 		return []byte{}, nil
@@ -173,12 +181,13 @@ func (s *MapRepository) MarshalJSON() ([]byte, error) {
 	return jsMetrics, nil
 }
 
+// UnmarshalJSON - реализация интерфейса Unmarshaler
 func (s *MapRepository) UnmarshalJSON(data []byte) error {
 	var metrics []Metrics
 	err := json.Unmarshal(data, &metrics)
 	if err != nil {
 		return err
 	}
-	s.FromMetrics(metrics)
+	s.fromMetrics(metrics)
 	return nil
 }

@@ -13,18 +13,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ncyellow/devops/internal/agent/config"
 	"github.com/ncyellow/devops/internal/server/storage"
 )
 
-// Config содержит параметры по настройке агента
-type Config struct {
-	Address        string        `env:"ADDRESS"`
-	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
-	PollInterval   time.Duration `env:"POLL_INTERVAL"`
-}
-
-// Metrics текущее состояние всех метрик обновляются с интервалом pollInterval
-type Metrics struct {
+// RuntimeMetrics текущее состояние всех метрик обновляются с интервалом pollInterval
+type RuntimeMetrics struct {
 	PollCount   int64
 	RandomValue float64
 	runtime.MemStats
@@ -37,54 +31,16 @@ type Metrics struct {
 //	}
 //	collector := agent.Agent{Conf: conf}
 type Agent struct {
-	Conf    Config
-	metrics Metrics
+	Conf    config.Config
+	metrics RuntimeMetrics
 }
 
 // sendToServer отправка метрик на сервер
 func (collector *Agent) sendToServer() {
 	//! приводим все метрики к нужным типам.
 	url := fmt.Sprintf("http://%s/update/", collector.Conf.Address)
-
-	gauges := prepareGauges(&collector.metrics)
-	for name, value := range gauges {
-		metric := storage.Metrics{
-			ID:    name,
-			MType: storage.Gauge,
-			Value: &value,
-		}
-
-		buf, err := json.Marshal(metric)
-		if err != nil {
-			log.Fatal(err)
-		}
-		resp, err := http.Post(url, "application/json", bytes.NewBuffer(buf))
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		resp.Body.Close()
-	}
-
-	counters := prepareCounters(&collector.metrics)
-	for name, value := range counters {
-		metric := storage.Metrics{
-			ID:    name,
-			MType: storage.Counter,
-			Delta: &value,
-		}
-
-		buf, err := json.Marshal(metric)
-		if err != nil {
-			log.Fatal(err)
-		}
-		resp, err := http.Post(url, "application/json", bytes.NewBuffer(buf))
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		resp.Body.Close()
-	}
+	SendMetrics(collector.metrics.prepareGauges(), url)
+	SendMetrics(collector.metrics.prepareCounters(), url)
 }
 
 // Run запускает цикл по обработке таймеров и ожидания сигналов от ОС
@@ -125,8 +81,8 @@ func (collector *Agent) Run() error {
 
 // prepareGauges - готовит map[string]float64 с метриками gauges для отправки на сервер,
 // так как класс метрики довольно жирный передает через указатель
-func prepareGauges(metrics *Metrics) map[string]float64 {
-	return map[string]float64{
+func (metrics *RuntimeMetrics) prepareGauges() []storage.Metrics {
+	gauges := map[string]float64{
 		"Alloc":         float64(metrics.Alloc),
 		"BuckHashSys":   float64(metrics.BuckHashSys),
 		"Frees":         float64(metrics.Frees),
@@ -156,12 +112,54 @@ func prepareGauges(metrics *Metrics) map[string]float64 {
 		"TotalAlloc":    float64(metrics.TotalAlloc),
 		"RandomValue":   metrics.RandomValue,
 	}
+
+	result := make([]storage.Metrics, 0, len(gauges))
+	for name, value := range gauges {
+		// Если пользоваться value, то все значения будут ссылаться на одну и ту же переменную - последнюю
+		gaugeValue := value
+		metric := storage.Metrics{
+			ID:    name,
+			MType: storage.Gauge,
+			Value: &gaugeValue,
+		}
+		result = append(result, metric)
+	}
+	return result
 }
 
 // prepareCounters - готовит map[string]int64 с метриками counter для отправки на сервер,
 // пока такая метрика одна, но для обобщения сделан сразу метод
-func prepareCounters(metrics *Metrics) map[string]int64 {
-	return map[string]int64{
+func (metrics *RuntimeMetrics) prepareCounters() []storage.Metrics {
+	counters := map[string]int64{
 		"PollCount": metrics.PollCount,
+	}
+
+	result := make([]storage.Metrics, 0, len(counters))
+	for name, value := range counters {
+		// Если пользоваться value, то все значения будут ссылаться на одну и ту же переменную - последнюю
+		counterValue := value
+		metric := storage.Metrics{
+			ID:    name,
+			MType: storage.Counter,
+			Delta: &counterValue,
+		}
+		result = append(result, metric)
+	}
+	return result
+}
+
+// SendMetrics отправляет метрики на указанный url
+func SendMetrics(dataSource []storage.Metrics, url string) {
+	for _, metric := range dataSource {
+		buf, err := json.Marshal(metric)
+		if err != nil {
+			log.Fatal(err)
+		}
+		resp, err := http.Post(url, "application/json", bytes.NewBuffer(buf))
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		resp.Body.Close()
 	}
 }

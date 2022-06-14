@@ -19,8 +19,8 @@ func TestMapRepositoryGauge(t *testing.T) {
 
 	// чтение
 	val, ok := repo.Gauge("testGauge")
-	assert.Equal(t, val, 100.0)
-	assert.Equal(t, ok, true)
+	assert.Equal(t, 100.0, val)
+	assert.Equal(t, true, ok)
 
 	// обновляем повторно
 	err = repo.UpdateGauge("testGauge", 300.0)
@@ -28,12 +28,12 @@ func TestMapRepositoryGauge(t *testing.T) {
 
 	// проверяем что старое значение перезаписалось
 	val, ok = repo.Gauge("testGauge")
-	assert.Equal(t, val, 300.0)
-	assert.Equal(t, ok, true)
+	assert.Equal(t, 300.0, val)
+	assert.Equal(t, true, ok)
 
 	// Проверка чтения неизвестного значения
 	_, ok = repo.Gauge("unknownGauge")
-	assert.Equal(t, ok, false)
+	assert.Equal(t, false, ok)
 }
 
 // TestMapRepository Тестируем вставку и чтение в MapRepository для counter
@@ -48,8 +48,8 @@ func TestMapRepositoryCounter(t *testing.T) {
 
 	// чтение
 	val, ok := repo.Counter("testCounter")
-	assert.Equal(t, val, int64(100))
-	assert.Equal(t, ok, true)
+	assert.Equal(t, int64(100), val)
+	assert.Equal(t, true, ok)
 
 	// обновляем еще раз
 	err = repo.UpdateCounter("testCounter", 100)
@@ -57,12 +57,12 @@ func TestMapRepositoryCounter(t *testing.T) {
 
 	// проверяем что счетчик приплюсовал значение
 	val, ok = repo.Counter("testCounter")
-	assert.Equal(t, val, int64(200))
-	assert.Equal(t, ok, true)
+	assert.Equal(t, int64(200), val)
+	assert.Equal(t, true, ok)
 
 	// Проверка чтения неизвестного значения
 	_, ok = repo.Counter("unknownCounter")
-	assert.Equal(t, ok, false)
+	assert.Equal(t, false, ok)
 }
 
 // TestMapRepository Тестируем вставку и чтение в MapRepository для counter
@@ -83,8 +83,8 @@ func TestMapRepositoryMetricsCounter(t *testing.T) {
 
 	// чтение
 	val, ok := repo.Metric("testCounterMetric", Counter)
-	assert.Equal(t, *val.Delta, updateValue)
-	assert.Equal(t, ok, true)
+	assert.Equal(t, updateValue, *val.Delta)
+	assert.Equal(t, true, ok)
 
 	// обновляем еще раз
 	err = repo.UpdateMetric(Metrics{
@@ -96,8 +96,8 @@ func TestMapRepositoryMetricsCounter(t *testing.T) {
 
 	// чтение
 	val, ok = repo.Metric("testCounterMetric", Counter)
-	assert.Equal(t, *val.Delta, updateValue*2)
-	assert.Equal(t, ok, true)
+	assert.Equal(t, updateValue*2, *val.Delta)
+	assert.Equal(t, true, ok)
 
 	// Проверка чтения неизвестного значения
 	_, ok = repo.Metric("unknownMetricCoutner", Counter)
@@ -123,8 +123,8 @@ func TestMapRepositoryMetricsGauge(t *testing.T) {
 
 	// чтение
 	val, ok := repo.Metric("testGaugeMetric", Gauge)
-	assert.Equal(t, *val.Value, updateValue)
-	assert.Equal(t, ok, true)
+	assert.Equal(t, updateValue, *val.Value)
+	assert.Equal(t, true, ok)
 
 	// обновляем повторно
 	updateValue = 300
@@ -137,12 +137,12 @@ func TestMapRepositoryMetricsGauge(t *testing.T) {
 
 	// проверяем что старое значение перезаписалось
 	val, ok = repo.Metric("testGaugeMetric", Gauge)
-	assert.Equal(t, *val.Value, updateValue)
-	assert.Equal(t, ok, true)
+	assert.Equal(t, updateValue, *val.Value)
+	assert.Equal(t, true, ok)
 
 	// Проверка чтения неизвестного значения
 	_, ok = repo.Metric("unknownMetricGauge", Counter)
-	assert.Equal(t, ok, false)
+	assert.Equal(t, false, ok)
 }
 
 // TestMarshalJSON сериализация в json
@@ -173,10 +173,10 @@ func TestUnmarshalJSON(t *testing.T) {
 	assert.NoError(t, err)
 
 	val, ok := repo.Gauge("testGaugeMetric")
-	assert.Equal(t, ok, true)
-	assert.Equal(t, val, float64(100))
+	assert.Equal(t, true, ok)
+	assert.Equal(t, float64(100), val)
 
 	delta, ok := repo.Counter("testCounterMetric")
-	assert.Equal(t, ok, true)
-	assert.Equal(t, delta, int64(120))
+	assert.Equal(t, true, ok)
+	assert.Equal(t, int64(120), delta)
 }

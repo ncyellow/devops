@@ -18,8 +18,10 @@ func main() {
 	flag.DurationVar(&cfg.StoreInterval, "i", time.Second*300, "store interval in the format 300s")
 	flag.BoolVar(&cfg.Restore, "r", true, "restore from file. true if needed")
 	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "filename that used for save metrics state")
+	// Сначала парсим командную строку
 	flag.Parse()
 
+	// Далее приоритетно аргументы из ENV
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatal(err)

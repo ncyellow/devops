@@ -11,9 +11,55 @@ import (
 	"github.com/ncyellow/devops/internal/server/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-func testRequest(t *testing.T, ts *httptest.Server, method, path string, contentType string, reqBody []byte) (*http.Response, string) {
+type want struct {
+	statusCode int
+	body       string
+}
+type tests struct {
+	name        string
+	request     string
+	requestType string
+	contentType string
+	body        []byte
+	want        want
+}
+
+type HandlersSuite struct {
+	suite.Suite
+	ts *httptest.Server
+}
+
+// SetupSuite перед началом теста стартуем новый сервер httptest.Server делаем так, чтобы тестировать каждый
+// handler отдельно и не сливать все тесты в один
+func (suite *HandlersSuite) SetupTest() {
+	repo := storage.NewRepository()
+	r := NewRouter(repo)
+
+	suite.ts = httptest.NewServer(r)
+}
+
+// TearDownSuite после теста отключаем сервер
+func (suite *HandlersSuite) TearDownTest() {
+	suite.ts.Close()
+}
+
+func TestHandlersSuite(t *testing.T) {
+	suite.Run(t, new(HandlersSuite))
+}
+
+func (suite *HandlersSuite) runTableTests(testList []tests) {
+	for _, tt := range testList {
+		resp, body := runTestRequest(suite.T(), suite.ts, tt.requestType, tt.request, tt.contentType, tt.body)
+		assert.Equal(suite.T(), tt.want.statusCode, resp.StatusCode, tt.name)
+		assert.Equal(suite.T(), tt.want.body, body, tt.name)
+		resp.Body.Close()
+	}
+}
+
+func runTestRequest(t *testing.T, ts *httptest.Server, method, path string, contentType string, reqBody []byte) (*http.Response, string) {
 	req, err := http.NewRequest(method, ts.URL+path, bytes.NewBuffer(reqBody))
 	require.NoError(t, err)
 
@@ -28,59 +74,9 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, content
 	return resp, string(respBody)
 }
 
-// TestRouter тесты по запросам к различным url
-func TestRouter(t *testing.T) {
-	repo := storage.NewRepository()
-	r := NewRouter(repo)
-
-	ts := httptest.NewServer(r)
-	defer ts.Close()
-
-	type want struct {
-		statusCode int
-		body       string
-	}
-	tests := []struct {
-		name        string
-		request     string
-		requestType string
-		contentType string
-		body        []byte
-		want        want
-	}{
-		{
-			name:        "add counter metric with correct data",
-			request:     "/update/counter/testCounter/100",
-			requestType: "POST",
-			contentType: "text/plain",
-			body:        nil,
-			want: want{
-				statusCode: http.StatusOK,
-				body:       "ok",
-			},
-		},
-		{
-			name:        "add counter metric without id",
-			request:     "/update/counter/",
-			requestType: "POST",
-			contentType: "text/plain",
-			body:        nil,
-			want: want{
-				statusCode: http.StatusNotFound,
-				body:       "404 page not found\n",
-			},
-		},
-		{
-			name:        "counter invalid value",
-			request:     "/update/counter/testCounter/none",
-			requestType: "POST",
-			contentType: "text/plain",
-			body:        nil,
-			want: want{
-				statusCode: http.StatusBadRequest,
-				body:       "incorrect metric value",
-			},
-		},
+//TestListHandler тестируем ListHandler
+func (suite *HandlersSuite) TestListHandler() {
+	testData := []tests{
 		{
 			name:        "add gauge metric with correct data",
 			request:     "/update/gauge/testGauge/100",
@@ -93,36 +89,69 @@ func TestRouter(t *testing.T) {
 			},
 		},
 		{
-			name:        "add gauge metric without id",
-			request:     "/update/gauge/",
+			name:        "add counter metric with correct data",
+			request:     "/update/counter/testCounter/100",
 			requestType: "POST",
 			contentType: "text/plain",
 			body:        nil,
 			want: want{
-				statusCode: http.StatusNotFound,
-				body:       "404 page not found\n",
+				statusCode: http.StatusOK,
+				body:       "ok",
 			},
 		},
 		{
-			name:        "gauge invalid value",
-			request:     "/update/gauge/testGauge/none",
+			name:        "list all metrics",
+			request:     "/",
+			requestType: "GET",
+			contentType: "text/plain",
+			body:        nil,
+			want: want{
+				statusCode: http.StatusOK,
+				body: `
+	<html>
+	<body>
+	<h1>All metrics</h1>
+	<h3>gauges</h3>
+	<ul>
+	  <li>testGauge : 100.000</li>
+
+	</ul>
+	<h3>counters</h3>
+	<ul>
+	  <li>testCounter : 100</li>
+
+	</ul>
+	</body>
+	</html>`,
+			},
+		},
+	}
+	suite.runTableTests(testData)
+}
+
+//TestListHandler тестируем ValueHandler
+func (suite *HandlersSuite) TestValueHandler() {
+	testData := []tests{
+		{
+			name:        "add gauge metric with correct data",
+			request:     "/update/gauge/testGauge/100",
 			requestType: "POST",
 			contentType: "text/plain",
 			body:        nil,
 			want: want{
-				statusCode: http.StatusBadRequest,
-				body:       "incorrect metric value",
+				statusCode: http.StatusOK,
+				body:       "ok",
 			},
 		},
 		{
-			name:        "invalid update type",
-			request:     "/update/unknown/testCounter/100",
+			name:        "add counter metric with correct data",
+			request:     "/update/counter/testCounter/100",
 			requestType: "POST",
 			contentType: "text/plain",
 			body:        nil,
 			want: want{
-				statusCode: http.StatusNotImplemented,
-				body:       "incorrect metric type",
+				statusCode: http.StatusOK,
+				body:       "ok",
 			},
 		},
 		{
@@ -169,32 +198,64 @@ func TestRouter(t *testing.T) {
 				body:       "",
 			},
 		},
+	}
+	suite.runTableTests(testData)
+}
+
+//TestListHandler тестируем UpdateHandler
+func (suite *HandlersSuite) TestUpdateHandler() {
+	testData := []tests{
 		{
-			name:        "list all metrics",
-			request:     "/",
+			name:        "add gauge metric with correct data",
+			request:     "/update/gauge/testGauge/100",
+			requestType: "POST",
+			contentType: "text/plain",
+			body:        nil,
+			want: want{
+				statusCode: http.StatusOK,
+				body:       "ok",
+			},
+		},
+		{
+			name:        "add counter metric with correct data",
+			request:     "/update/counter/testCounter/100",
+			requestType: "POST",
+			contentType: "text/plain",
+			body:        nil,
+			want: want{
+				statusCode: http.StatusOK,
+				body:       "ok",
+			},
+		},
+		{
+			name:        "get correct counter value",
+			request:     "/value/counter/testCounter",
 			requestType: "GET",
 			contentType: "text/plain",
 			body:        nil,
 			want: want{
 				statusCode: http.StatusOK,
-				body: `
-	<html>
-	<body>
-	<h1>All metrics</h1>
-	<h3>gauges</h3>
-	<ul>
-	  <li>testGauge : 100.000</li>
-
-	</ul>
-	<h3>counters</h3>
-	<ul>
-	  <li>testCounter : 100</li>
-
-	</ul>
-	</body>
-	</html>`,
+				body:       "100",
 			},
 		},
+		{
+			name:        "get correct gauge value",
+			request:     "/value/gauge/testGauge",
+			requestType: "GET",
+			contentType: "text/plain",
+			body:        nil,
+			want: want{
+				statusCode: http.StatusOK,
+				body:       fmt.Sprintf("%.3f", 100.0),
+			},
+		},
+	}
+	suite.runTableTests(testData)
+}
+
+// TestUpdateValueJSONHandler тестируем UpdateJSONHandler ValueJSONHandler
+func (suite *HandlersSuite) TestUpdateValueJSONHandler() {
+	testData := []tests{
 		{
 			name:        "set gauge with json",
 			request:     "/update/",
@@ -240,12 +301,5 @@ func TestRouter(t *testing.T) {
 			},
 		},
 	}
-
-	for _, tt := range tests {
-		resp, body := testRequest(t, ts, tt.requestType, tt.request, tt.contentType, tt.body)
-		assert.Equal(t, tt.want.statusCode, resp.StatusCode, tt.name)
-		assert.Equal(t, tt.want.body, body, tt.name)
-		resp.Body.Close()
-	}
-
+	suite.runTableTests(testData)
 }

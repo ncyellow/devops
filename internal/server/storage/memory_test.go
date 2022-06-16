@@ -117,7 +117,7 @@ func TestMapRepositoryStringer(t *testing.T) {
 	err = repo.UpdateCounter("testCounter", 100)
 	assert.NoError(t, err)
 
-	correctHtml := `
+	correctHTML := `
 	<html>
 	<body>
 	<h1>All metrics</h1>
@@ -134,7 +134,7 @@ func TestMapRepositoryStringer(t *testing.T) {
 	</body>
 	</html>`
 
-	assert.Equal(t, correctHtml, repo.String())
+	assert.Equal(t, correctHTML, repo.String())
 
 }
 

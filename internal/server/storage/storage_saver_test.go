@@ -12,6 +12,7 @@ func TestSaveRestoreFromFile(t *testing.T) {
 
 	// Создаем репозиторий, который будем тестировать
 	repo := NewRepository()
+
 	data := []byte(`[{"id":"testGaugeMetric","type":"gauge","value":100},{"id":"testCounterMetric","type":"counter","delta":120}]`)
 	err := json.Unmarshal(data, &repo)
 	assert.NoError(t, err)
@@ -34,6 +35,7 @@ func TestSaveRestoreFromFile(t *testing.T) {
 	RestoreFromFile(fileName, newRepo)
 
 	// Так как перегружен Stringer, который возвращает нам html они должны быть одинаковые
+	// Второй вариант сравнить их json представление
 	assert.Equal(t, repo.String(), newRepo.String())
 
 }

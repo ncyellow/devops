@@ -23,7 +23,6 @@ func NewRouter(repo storage.Repository) chi.Router {
 	r.Get("/value/{metricType}/{metricName}", ValueHandler(repo))
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", UpdateHandler(repo))
 	r.Post("/update/", UpdateJSONHandler(repo))
-	r.Post("/update/", UpdateJSONHandler(repo))
 	r.Post("/value/", ValueJSONHandler(repo))
 	return r
 }

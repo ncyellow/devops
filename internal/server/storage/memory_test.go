@@ -104,6 +104,40 @@ func TestMapRepositoryMetricsCounter(t *testing.T) {
 	assert.Equal(t, ok, false)
 }
 
+// TestMapRepository Тестируем вставку и чтение в MapRepository для counter
+func TestMapRepositoryStringer(t *testing.T) {
+	t.Parallel()
+
+	repo := NewRepository()
+
+	// обновление
+	err := repo.UpdateGauge("testGauge", 100.0)
+	assert.NoError(t, err)
+
+	err = repo.UpdateCounter("testCounter", 100)
+	assert.NoError(t, err)
+
+	correctHtml := `
+	<html>
+	<body>
+	<h1>All metrics</h1>
+	<h3>gauges</h3>
+	<ul>
+	  <li>testGauge : 100.000</li>
+
+	</ul>
+	<h3>counters</h3>
+	<ul>
+	  <li>testCounter : 100</li>
+
+	</ul>
+	</body>
+	</html>`
+
+	assert.Equal(t, correctHtml, repo.String())
+
+}
+
 // TestMapRepository Тестируем вставку и чтение в MapRepository для gauge
 func TestMapRepositoryMetricsGauge(t *testing.T) {
 	t.Parallel()
@@ -135,14 +169,34 @@ func TestMapRepositoryMetricsGauge(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
+	// обновляем с левым типом
+	updateValue = 300
+	err = repo.UpdateMetric(Metrics{
+		ID:    "testMetric",
+		MType: "unknownType",
+		Value: &updateValue,
+	})
+	assert.Error(t, err)
+
 	// проверяем что старое значение перезаписалось
 	val, ok = repo.Metric("testGaugeMetric", Gauge)
 	assert.Equal(t, updateValue, *val.Value)
 	assert.Equal(t, true, ok)
 
-	// Проверка чтения неизвестного значения
-	_, ok = repo.Metric("unknownMetricGauge", Counter)
+	// Проверка чтения неизвестной метрики тика Gauge
+	val, ok = repo.Metric("unknownMetricGauge", Gauge)
 	assert.Equal(t, false, ok)
+	assert.Equal(t, val, Metrics{})
+
+	// Проверка чтения неизвестной метрики тика Counter
+	val, ok = repo.Metric("unknownMetricCounter", Counter)
+	assert.Equal(t, false, ok)
+	assert.Equal(t, val, Metrics{})
+
+	// Проверка чтения неизвестной метрики тика Counter
+	val, ok = repo.Metric("unknownMetric", "unknownType")
+	assert.Equal(t, false, ok)
+	assert.Equal(t, val, Metrics{})
 }
 
 // TestMarshalJSON сериализация в json
@@ -159,7 +213,7 @@ func TestMarshalJSON(t *testing.T) {
 	jsRepo, err := json.Marshal(repo)
 	assert.NoError(t, err)
 
-	assert.Equal(t, string(jsRepo), `[{"id":"testGaugeMetric","type":"gauge","value":100},{"id":"testCounterMetric","type":"counter","delta":120}]`)
+	assert.JSONEq(t, string(jsRepo), `[{"id":"testGaugeMetric","type":"gauge","value":100},{"id":"testCounterMetric","type":"counter","delta":120}]`)
 }
 
 // TestUnmarshalJSON тест десериализации из json
@@ -179,4 +233,10 @@ func TestUnmarshalJSON(t *testing.T) {
 	delta, ok := repo.Counter("testCounterMetric")
 	assert.Equal(t, true, ok)
 	assert.Equal(t, int64(120), delta)
+
+	brokenRepo := NewRepository()
+	brokenData := []byte(`{"name": "Joe", "age": null, }`)
+
+	err = json.Unmarshal(brokenData, &brokenRepo)
+	assert.Error(t, err)
 }

@@ -2,122 +2,202 @@ package storage
 
 import (
 	"encoding/json"
-	"testing"
-
-	"github.com/stretchr/testify/assert"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// TestMapRepository Тестируем вставку и чтение в MapRepository для gauge
-func TestMapRepositoryGauge(t *testing.T) {
-	t.Parallel()
+var _ = Describe("MapRepository", func() {
+	Context("Если выполняется сериализация в json MapRepository", func() {
+		It("json должен быть корректным и содержать все значения из MapRepository", func() {
+			repo := NewRepository()
 
-	repo := NewRepository()
+			err := repo.UpdateGauge("testGaugeMetric", 100)
+			Expect(err).Should(BeNil())
 
-	// обновление
-	err := repo.UpdateGauge("testGauge", 100.0)
-	assert.NoError(t, err)
+			err = repo.UpdateCounter("testCounterMetric", 120)
+			Expect(err).Should(BeNil())
 
-	// чтение
-	val, ok := repo.Gauge("testGauge")
-	assert.Equal(t, 100.0, val)
-	assert.Equal(t, true, ok)
+			jsRepo, err := json.Marshal(repo)
+			Expect(err).Should(BeNil())
 
-	// обновляем повторно
-	err = repo.UpdateGauge("testGauge", 300.0)
-	assert.NoError(t, err)
-
-	// проверяем что старое значение перезаписалось
-	val, ok = repo.Gauge("testGauge")
-	assert.Equal(t, 300.0, val)
-	assert.Equal(t, true, ok)
-
-	// Проверка чтения неизвестного значения
-	_, ok = repo.Gauge("unknownGauge")
-	assert.Equal(t, false, ok)
-}
-
-// TestMapRepository Тестируем вставку и чтение в MapRepository для counter
-func TestMapRepositoryCounter(t *testing.T) {
-	t.Parallel()
-
-	repo := NewRepository()
-
-	// обновление
-	err := repo.UpdateCounter("testCounter", 100)
-	assert.NoError(t, err)
-
-	// чтение
-	val, ok := repo.Counter("testCounter")
-	assert.Equal(t, int64(100), val)
-	assert.Equal(t, true, ok)
-
-	// обновляем еще раз
-	err = repo.UpdateCounter("testCounter", 100)
-	assert.NoError(t, err)
-
-	// проверяем что счетчик приплюсовал значение
-	val, ok = repo.Counter("testCounter")
-	assert.Equal(t, int64(200), val)
-	assert.Equal(t, true, ok)
-
-	// Проверка чтения неизвестного значения
-	_, ok = repo.Counter("unknownCounter")
-	assert.Equal(t, false, ok)
-}
-
-// TestMapRepository Тестируем вставку и чтение в MapRepository для counter
-func TestMapRepositoryMetricsCounter(t *testing.T) {
-	t.Parallel()
-
-	repo := NewRepository()
-
-	var updateValue int64 = 100
-
-	// обновление
-	err := repo.UpdateMetric(Metrics{
-		ID:    "testCounterMetric",
-		MType: Counter,
-		Delta: &updateValue,
+			Expect(jsRepo).Should(MatchJSON(`[{"id":"testGaugeMetric","type":"gauge","value":100},{"id":"testCounterMetric","type":"counter","delta":120}]`))
+		})
 	})
-	assert.NoError(t, err)
 
-	// чтение
-	val, ok := repo.Metric("testCounterMetric", Counter)
-	assert.Equal(t, updateValue, *val.Delta)
-	assert.Equal(t, true, ok)
+	Context("Если выполняется десериализация json в MapRepository", func() {
+		It("Разобраные метрики должны соответствовать исходным значениям", func() {
+			repo := NewRepository()
+			data := []byte(`[{"id":"testGaugeMetric","type":"gauge","value":100},{"id":"testCounterMetric","type":"counter","delta":120}]`)
 
-	// обновляем еще раз
-	err = repo.UpdateMetric(Metrics{
-		ID:    "testCounterMetric",
-		MType: Counter,
-		Delta: &updateValue,
+			err := json.Unmarshal(data, &repo)
+			Expect(err).Should(BeNil())
+
+			val, ok := repo.Gauge("testGaugeMetric")
+			Expect(ok).Should(Equal(true))
+			Expect(val).Should(Equal(100.0))
+
+			delta, ok := repo.Counter("testCounterMetric")
+			Expect(ok).Should(Equal(true))
+			Expect(delta).Should(Equal(int64(120)))
+		})
 	})
-	assert.NoError(t, err)
 
-	// чтение
-	val, ok = repo.Metric("testCounterMetric", Counter)
-	assert.Equal(t, updateValue*2, *val.Delta)
-	assert.Equal(t, true, ok)
+	Context("Если передан некорректный json", func() {
+		It("Unmarshal завершаться с ошибкой", func() {
+			brokenRepo := NewRepository()
+			brokenData := []byte(`{"name": "Joe", "age": null, }`)
 
-	// Проверка чтения неизвестного значения
-	_, ok = repo.Metric("unknownMetricCoutner", Counter)
-	assert.Equal(t, ok, false)
-}
+			err := json.Unmarshal(brokenData, &brokenRepo)
+			Expect(err).ShouldNot(BeNil())
+		})
+	})
 
-// TestMapRepository Тестируем вставку и чтение в MapRepository для counter
-func TestMapRepositoryStringer(t *testing.T) {
-	t.Parallel()
+	Context("Выполняем проверку работы gauge метрик", func() {
+		It("Проверка простого чтения и записи через API Metric", func() {
+			repo := NewRepository()
 
-	repo := NewRepository()
+			var updateValue float64 = 100
 
-	// обновление
-	err := repo.UpdateGauge("testGauge", 100.0)
-	assert.NoError(t, err)
+			// обновление
+			err := repo.UpdateMetric(Metrics{
+				ID:    "testGaugeMetric",
+				MType: Gauge,
+				Value: &updateValue,
+			})
+			Expect(err).Should(BeNil())
 
-	err = repo.UpdateCounter("testCounter", 100)
-	assert.NoError(t, err)
+			// чтение
+			val, ok := repo.Metric("testGaugeMetric", Gauge)
+			Expect(ok).Should(Equal(true))
+			Expect(*val.Value).Should(Equal(updateValue))
+		})
 
-	correctHTML := `
+		It("После повторного обновления gauge должно быть выставлено последнее значение", func() {
+			repo := NewRepository()
+			// обновление
+			var updateValue float64 = 100
+
+			// обновление
+			err := repo.UpdateMetric(Metrics{
+				ID:    "testGaugeMetric",
+				MType: Gauge,
+				Value: &updateValue,
+			})
+			Expect(err).Should(BeNil())
+
+			// обновляем повторно
+			updateValue = 300
+			err = repo.UpdateMetric(Metrics{
+				ID:    "testGaugeMetric",
+				MType: Gauge,
+				Value: &updateValue,
+			})
+			Expect(err).Should(BeNil())
+
+			// проверяем что старое значение перезаписалось
+			val, ok := repo.Metric("testGaugeMetric", Gauge)
+			Expect(*val.Value).Should(Equal(updateValue))
+			Expect(ok).Should(Equal(true))
+		})
+
+		It("Для неизвестного типа возвращается ошибка метрик", func() {
+			repo := NewRepository()
+			updateValue := 100.0
+			err := repo.UpdateMetric(Metrics{
+				ID:    "testMetric",
+				MType: "unknownType",
+				Value: &updateValue,
+			})
+			Expect(err).ShouldNot(BeNil())
+		})
+
+		It("Чтение неизвестной метрики типа gauge возвращает Metrics{}, false", func() {
+			repo := NewRepository()
+			// Проверка чтения неизвестной метрики тика Gauge
+			val, ok := repo.Metric("unknownMetricGauge", Gauge)
+			Expect(ok).Should(BeFalse())
+			Expect(val).Should(Equal(Metrics{}))
+		})
+	})
+
+	Context("Выполняем проверку работы counter метрик", func() {
+
+		It("Чтение неизвестной метрики типа counter возвращает Metrics{}, false", func() {
+			repo := NewRepository()
+			// Проверка чтения неизвестной метрики тика Gauge
+			val, ok := repo.Metric("unknownMetricCounter", Counter)
+			Expect(ok).Should(BeFalse())
+			Expect(val).Should(Equal(Metrics{}))
+		})
+
+		It("Проверка стандартного чтения записи counter метрик", func() {
+			repo := NewRepository()
+
+			// обновление
+			err := repo.UpdateCounter("testCounter", 100)
+			Expect(err).Should(BeNil())
+
+			// чтение
+			val, ok := repo.Counter("testCounter")
+			Expect(ok).Should(Equal(true))
+			Expect(val).Should(Equal(int64(100)))
+		})
+		It("Проверка что два обновления метрики увеличивает счетчик counter", func() {
+			repo := NewRepository()
+
+			// обновление
+			err := repo.UpdateCounter("testCounter", 100)
+			Expect(err).Should(BeNil())
+
+			// обновление
+			err = repo.UpdateCounter("testCounter", 100)
+			Expect(err).Should(BeNil())
+
+			// чтение
+			val, ok := repo.Counter("testCounter")
+			Expect(ok).Should(Equal(true))
+			Expect(val).Should(Equal(int64(200)))
+		})
+
+		It("Проверка чтения неизвестной метрики counter", func() {
+			repo := NewRepository()
+			// Проверка чтения неизвестного значения
+			_, ok := repo.Counter("unknownCounter")
+			Expect(ok).Should(Equal(false))
+		})
+
+		It("Проверка стандартного чтения записи counter метрик через API Metrics", func() {
+			repo := NewRepository()
+
+			var updateValue int64 = 100
+
+			// обновление
+			err := repo.UpdateMetric(Metrics{
+				ID:    "testCounterMetric",
+				MType: Counter,
+				Delta: &updateValue,
+			})
+			Expect(err).Should(BeNil())
+
+			// чтение
+			val, ok := repo.Metric("testCounterMetric", Counter)
+			Expect(ok).Should(Equal(true))
+			Expect(*val.Delta).Should(Equal(updateValue))
+		})
+	})
+
+	Context("Проверяем интерфейс Stringer", func() {
+		It("Должен быть корректный html наличии метрик gauge и counter", func() {
+			repo := NewRepository()
+
+			// обновление
+			err := repo.UpdateGauge("testGauge", 100.0)
+			Expect(err).Should(BeNil())
+
+			err = repo.UpdateCounter("testCounter", 100)
+			Expect(err).Should(BeNil())
+
+			correctHTML := `
 	<html>
 	<body>
 	<h1>All metrics</h1>
@@ -134,109 +214,7 @@ func TestMapRepositoryStringer(t *testing.T) {
 	</body>
 	</html>`
 
-	assert.Equal(t, correctHTML, repo.String())
-
-}
-
-// TestMapRepository Тестируем вставку и чтение в MapRepository для gauge
-func TestMapRepositoryMetricsGauge(t *testing.T) {
-	t.Parallel()
-
-	repo := NewRepository()
-
-	// обновление
-	var updateValue float64 = 100
-
-	// обновление
-	err := repo.UpdateMetric(Metrics{
-		ID:    "testGaugeMetric",
-		MType: Gauge,
-		Value: &updateValue,
+			Expect(repo.String()).Should(Equal(correctHTML))
+		})
 	})
-	assert.NoError(t, err)
-
-	// чтение
-	val, ok := repo.Metric("testGaugeMetric", Gauge)
-	assert.Equal(t, updateValue, *val.Value)
-	assert.Equal(t, true, ok)
-
-	// обновляем повторно
-	updateValue = 300
-	err = repo.UpdateMetric(Metrics{
-		ID:    "testGaugeMetric",
-		MType: Gauge,
-		Value: &updateValue,
-	})
-	assert.NoError(t, err)
-
-	// обновляем с левым типом
-	updateValue = 300
-	err = repo.UpdateMetric(Metrics{
-		ID:    "testMetric",
-		MType: "unknownType",
-		Value: &updateValue,
-	})
-	assert.Error(t, err)
-
-	// проверяем что старое значение перезаписалось
-	val, ok = repo.Metric("testGaugeMetric", Gauge)
-	assert.Equal(t, updateValue, *val.Value)
-	assert.Equal(t, true, ok)
-
-	// Проверка чтения неизвестной метрики тика Gauge
-	val, ok = repo.Metric("unknownMetricGauge", Gauge)
-	assert.Equal(t, false, ok)
-	assert.Equal(t, val, Metrics{})
-
-	// Проверка чтения неизвестной метрики тика Counter
-	val, ok = repo.Metric("unknownMetricCounter", Counter)
-	assert.Equal(t, false, ok)
-	assert.Equal(t, val, Metrics{})
-
-	// Проверка чтения неизвестной метрики тика Counter
-	val, ok = repo.Metric("unknownMetric", "unknownType")
-	assert.Equal(t, false, ok)
-	assert.Equal(t, val, Metrics{})
-}
-
-// TestMarshalJSON сериализация в json
-func TestMarshalJSON(t *testing.T) {
-	t.Parallel()
-
-	repo := NewRepository()
-
-	err := repo.UpdateGauge("testGaugeMetric", 100)
-	assert.NoError(t, err)
-	err = repo.UpdateCounter("testCounterMetric", 120)
-	assert.NoError(t, err)
-
-	jsRepo, err := json.Marshal(repo)
-	assert.NoError(t, err)
-
-	assert.JSONEq(t, string(jsRepo), `[{"id":"testGaugeMetric","type":"gauge","value":100},{"id":"testCounterMetric","type":"counter","delta":120}]`)
-}
-
-// TestUnmarshalJSON тест десериализации из json
-func TestUnmarshalJSON(t *testing.T) {
-	t.Parallel()
-
-	repo := NewRepository()
-	data := []byte(`[{"id":"testGaugeMetric","type":"gauge","value":100},{"id":"testCounterMetric","type":"counter","delta":120}]`)
-
-	err := json.Unmarshal(data, &repo)
-	assert.NoError(t, err)
-
-	val, ok := repo.Gauge("testGaugeMetric")
-	assert.Equal(t, true, ok)
-	assert.Equal(t, float64(100), val)
-
-	delta, ok := repo.Counter("testCounterMetric")
-	assert.Equal(t, true, ok)
-	assert.Equal(t, int64(120), delta)
-
-	brokenRepo := NewRepository()
-	brokenData := []byte(`{"name": "Joe", "age": null, }`)
-
-	err = json.Unmarshal(brokenData, &brokenRepo)
-	assert.Error(t, err)
-}
+})

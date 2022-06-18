@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -20,7 +21,10 @@ func (s Server) RunServer() {
 	repo := storage.NewRepository()
 
 	if s.Conf.Restore {
-		storage.RestoreFromFile(s.Conf.StoreFile, repo)
+		err := storage.RestoreFromFile(s.Conf.StoreFile, repo)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 
 	r := handlers.NewRouter(repo)

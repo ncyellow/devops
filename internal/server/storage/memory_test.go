@@ -1,3 +1,4 @@
+// Тесты для MapRepository
 package storage
 
 import (

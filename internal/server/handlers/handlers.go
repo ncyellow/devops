@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/ncyellow/devops/internal/server/middlewares"
 	"github.com/ncyellow/devops/internal/server/storage"
 )
 
@@ -14,10 +17,13 @@ import (
 func NewRouter(repo storage.Repository) chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
+	r.Use(middlewares.EncoderGZIP)
 
 	r.Get("/", ListHandler(repo))
 	r.Get("/value/{metricType}/{metricName}", ValueHandler(repo))
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", UpdateHandler(repo))
+	r.Post("/update/", UpdateJSONHandler(repo))
+	r.Post("/value/", ValueJSONHandler(repo))
 	return r
 }
 
@@ -93,7 +99,7 @@ func UpdateHandler(repo storage.Repository) http.HandlerFunc {
 			//! Сейчас проблема только одна - ошибка при кривом имени метрики
 			if err != nil {
 				rw.WriteHeader(http.StatusInternalServerError)
-				rw.Write([]byte("incorrect metric name "))
+				rw.Write([]byte("incorrect metric name"))
 				return
 			}
 		default:
@@ -110,7 +116,90 @@ func UpdateHandler(repo storage.Repository) http.HandlerFunc {
 // ListHandler обрабатывает GET запросы на корень url. Возвращает список всех метрик + значение
 func ListHandler(repo storage.Repository) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
+		rw.Header().Set("Content-Type", "text/html")
 		rw.WriteHeader(http.StatusOK)
 		rw.Write([]byte(repo.String()))
+	}
+}
+
+// UpdateJSONHandler обрабатывает POST запросы на обновление метрик в виде json
+func UpdateJSONHandler(repo storage.Repository) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+
+		if r.Header.Get("Content-Type") != "application/json" {
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte("content type not support"))
+			return
+		}
+		reqBody, err := ioutil.ReadAll(r.Body)
+		defer r.Body.Close()
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte("Read data problem"))
+			return
+		}
+		metric := storage.Metrics{}
+		err = json.Unmarshal(reqBody, &metric)
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte("invalid deserialization"))
+			return
+		}
+
+		err = repo.UpdateMetric(metric)
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte("incorrect metric type"))
+			return
+		}
+
+		rw.WriteHeader(http.StatusOK)
+		rw.Write([]byte("ok"))
+	}
+}
+
+// ValueJSONHandler обрабатывает POST запрос, который возвращает список всех метрик в виде json
+func ValueJSONHandler(repo storage.Repository) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+
+		if r.Header.Get("Content-Type") != "application/json" {
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte("content type not support"))
+			return
+		}
+
+		reqBody, err := ioutil.ReadAll(r.Body)
+		defer r.Body.Close()
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte("Read data problem"))
+			return
+		}
+
+		metric := storage.Metrics{}
+		err = json.Unmarshal(reqBody, &metric)
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte("invalid deserialization"))
+			return
+		}
+
+		metricType := metric.MType
+		metricName := metric.ID
+
+		val, ok := repo.Metric(metricName, metricType)
+		if ok {
+			result, ok := json.Marshal(val)
+			if ok != nil {
+				rw.WriteHeader(http.StatusInternalServerError)
+				rw.Write([]byte("invalid serialization"))
+				return
+			}
+			rw.Header().Set("Content-Type", "application/json")
+			rw.Write(result)
+			return
+		}
+
+		rw.WriteHeader(http.StatusNotFound)
 	}
 }

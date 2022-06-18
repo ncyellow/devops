@@ -1,27 +1,32 @@
 package main
 
 import (
+	"flag"
 	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
+	"time"
 
-	"github.com/ncyellow/devops/internal/server/handlers"
-	"github.com/ncyellow/devops/internal/server/storage"
+	"github.com/caarlos0/env/v6"
+	"github.com/ncyellow/devops/internal/server"
+	"github.com/ncyellow/devops/internal/server/config"
 )
 
 func main() {
-	repo := storage.NewRepository()
-	r := handlers.NewRouter(repo)
 
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	var cfg config.Config
 
-	go func() {
-		if err := http.ListenAndServe(":8080", r); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
-		}
-	}()
-	<-done
+	flag.StringVar(&cfg.Address, "a", "localhost:8080", "address in the format host:port")
+	flag.DurationVar(&cfg.StoreInterval, "i", time.Second*300, "store interval in the format 300s")
+	flag.BoolVar(&cfg.Restore, "r", true, "restore from file. true if needed")
+	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "filename that used for save metrics state")
+	// Сначала парсим командную строку
+	flag.Parse()
+
+	// Далее приоритетно аргументы из ENV
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	server := server.Server{Conf: cfg}
+	server.RunServer()
 }

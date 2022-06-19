@@ -27,6 +27,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	server := server.Server{Conf: cfg}
+	server := server.Server{Conf: &cfg}
 	server.RunServer()
 }

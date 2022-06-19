@@ -26,6 +26,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	collector := agent.Agent{Conf: cfg}
+	collector := agent.Agent{Conf: &cfg}
 	log.Fatal(collector.Run())
 }

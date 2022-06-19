@@ -39,7 +39,7 @@ func RestoreFromFile(fileName string, repo Repository) {
 }
 
 // RunStorageSaver запускает сохранение данных repo по таймеру в файл
-func RunStorageSaver(config config.Config, repo Repository) {
+func RunStorageSaver(config *config.Config, repo Repository) {
 	if config.StoreInterval == 0 {
 		//! Не нужно сбрасывать на диск если StoreInterval == 0
 		return

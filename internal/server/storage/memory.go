@@ -42,12 +42,14 @@ func (s *MapRepository) UpdateCounter(name string, value int64) error {
 }
 
 func (s *MapRepository) UpdateMetric(metric Metrics) error {
-	if metric.MType == Gauge {
+	switch metric.MType {
+	case Gauge:
 		return s.UpdateGauge(metric.ID, *metric.Value)
-	} else if metric.MType == Counter {
+	case Counter:
 		return s.UpdateCounter(metric.ID, *metric.Delta)
+	default:
+		return fmt.Errorf("metric with type %s doesn't exsist", metric.MType)
 	}
-	return fmt.Errorf("metric with type %s doesn't exsist", metric.MType)
 }
 
 func (s *MapRepository) Gauge(name string) (val float64, ok bool) {
@@ -66,7 +68,8 @@ func (s *MapRepository) Counter(name string) (val int64, ok bool) {
 }
 
 func (s *MapRepository) Metric(name string, mType string) (val Metrics, ok bool) {
-	if mType == Gauge {
+	switch mType {
+	case Gauge:
 		val, ok := s.Gauge(name)
 		if !ok {
 			return Metrics{}, ok
@@ -77,8 +80,7 @@ func (s *MapRepository) Metric(name string, mType string) (val Metrics, ok bool)
 			Value: &val,
 			Delta: nil,
 		}, ok
-	}
-	if mType == Counter {
+	case Counter:
 		val, ok := s.Counter(name)
 		if !ok {
 			return Metrics{}, ok
@@ -89,8 +91,9 @@ func (s *MapRepository) Metric(name string, mType string) (val Metrics, ok bool)
 			Value: nil,
 			Delta: &val,
 		}, ok
+	default:
+		return Metrics{}, false
 	}
-	return Metrics{}, false
 }
 
 func (s *MapRepository) String() string {

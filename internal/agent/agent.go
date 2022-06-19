@@ -31,7 +31,7 @@ type RuntimeMetrics struct {
 //	}
 //	collector := agent.Agent{Conf: conf}
 type Agent struct {
-	Conf    config.Config
+	Conf    *config.Config
 	metrics RuntimeMetrics
 }
 

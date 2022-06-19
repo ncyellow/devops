@@ -13,7 +13,7 @@ import (
 )
 
 type Server struct {
-	Conf config.Config
+	Conf *config.Config
 }
 
 func (s Server) RunServer() {

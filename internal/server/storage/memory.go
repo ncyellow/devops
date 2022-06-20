@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 )
@@ -40,6 +41,17 @@ func (s *MapRepository) UpdateCounter(name string, value int64) error {
 	return nil
 }
 
+func (s *MapRepository) UpdateMetric(metric Metrics) error {
+	switch metric.MType {
+	case Gauge:
+		return s.UpdateGauge(metric.ID, *metric.Value)
+	case Counter:
+		return s.UpdateCounter(metric.ID, *metric.Delta)
+	default:
+		return fmt.Errorf("metric with type %s doesn't exsist", metric.MType)
+	}
+}
+
 func (s *MapRepository) Gauge(name string) (val float64, ok bool) {
 	s.gaugesLock.RLock()
 	val, ok = s.gauges[name]
@@ -53,6 +65,35 @@ func (s *MapRepository) Counter(name string) (val int64, ok bool) {
 	val, ok = s.counters[name]
 	s.countersLock.RUnlock()
 	return
+}
+
+func (s *MapRepository) Metric(name string, mType string) (val Metrics, ok bool) {
+	switch mType {
+	case Gauge:
+		val, ok := s.Gauge(name)
+		if !ok {
+			return Metrics{}, ok
+		}
+		return Metrics{
+			ID:    name,
+			MType: mType,
+			Value: &val,
+			Delta: nil,
+		}, ok
+	case Counter:
+		val, ok := s.Counter(name)
+		if !ok {
+			return Metrics{}, ok
+		}
+		return Metrics{
+			ID:    name,
+			MType: mType,
+			Value: nil,
+			Delta: &val,
+		}, ok
+	default:
+		return Metrics{}, false
+	}
 }
 
 func (s *MapRepository) String() string {
@@ -86,4 +127,70 @@ func (s *MapRepository) String() string {
 	s.countersLock.RUnlock()
 
 	return fmt.Sprintf(htmlTmpl, gaugesText, countersText)
+}
+
+// toMetrics Конвертация данных MapRepository в []Metrics
+func (s *MapRepository) toMetrics() []Metrics {
+	totalCount := len(s.gauges) + len(s.counters)
+	metrics := make([]Metrics, 0, totalCount)
+
+	s.gaugesLock.RLock()
+	for name, value := range s.gauges {
+		gaugeValue := value
+		metrics = append(metrics, Metrics{
+			ID:    name,
+			MType: Gauge,
+			Value: &gaugeValue,
+		})
+	}
+	s.gaugesLock.RUnlock()
+
+	s.countersLock.RLock()
+	for name, value := range s.counters {
+		counterValue := value
+		metrics = append(metrics, Metrics{
+			ID:    name,
+			MType: Counter,
+			Delta: &counterValue,
+		})
+	}
+	s.countersLock.RUnlock()
+	return metrics
+}
+
+// fromMetrics - обновляет метрики в MapRepository по []Metrics
+func (s *MapRepository) fromMetrics(metrics []Metrics) {
+	for _, metric := range metrics {
+		switch metric.MType {
+		case Gauge:
+			if metric.Value != nil {
+				s.UpdateGauge(metric.ID, *metric.Value)
+			}
+		case Counter:
+			if metric.Delta != nil {
+				s.UpdateCounter(metric.ID, *metric.Delta)
+			}
+		}
+	}
+}
+
+// MarshalJSON - реализация интерфейса Marshaler
+func (s *MapRepository) MarshalJSON() ([]byte, error) {
+	metrics := s.toMetrics()
+	jsMetrics, err := json.Marshal(metrics)
+	if err != nil {
+		return []byte{}, nil
+	}
+	return jsMetrics, nil
+}
+
+// UnmarshalJSON - реализация интерфейса Unmarshaler
+func (s *MapRepository) UnmarshalJSON(data []byte) error {
+	var metrics []Metrics
+	err := json.Unmarshal(data, &metrics)
+	if err != nil {
+		return err
+	}
+	s.fromMetrics(metrics)
+	return nil
 }

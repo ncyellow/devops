@@ -1,6 +1,9 @@
 package storage
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/ncyellow/devops/internal/hash"
+)
 
 const (
 	Gauge   = "gauge"
@@ -16,6 +19,19 @@ type Metrics struct {
 	Delta *int64 `json:"delta,omitempty"`
 	// Значение метрики в случае передачи gauge
 	Value *float64 `json:"value,omitempty"`
+	// Значение хеш-функции
+	Hash string `json:"hash,omitempty"`
+}
+
+func (m *Metrics) CalcHash(encodeFunc hash.EncodeFunc) string {
+	switch m.MType {
+	case Gauge:
+		return encodeFunc(fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value))
+	case Counter:
+		return encodeFunc(fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta))
+	default:
+		return ""
+	}
 }
 
 // Repository содержит API для работы с хранилищем метрик.

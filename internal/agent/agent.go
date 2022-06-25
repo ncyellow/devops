@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ncyellow/devops/internal/hash"
 	"log"
 	"math/rand"
 	"net/http"
@@ -39,8 +40,8 @@ type Agent struct {
 func (collector *Agent) sendToServer() {
 	//! приводим все метрики к нужным типам.
 	url := fmt.Sprintf("http://%s/update/", collector.Conf.Address)
-	SendMetrics(collector.metrics.prepareGauges(), url)
-	SendMetrics(collector.metrics.prepareCounters(), url)
+	SendMetrics(collector.metrics.prepareGauges(collector.Conf.SecretKey), url)
+	SendMetrics(collector.metrics.prepareCounters(collector.Conf.SecretKey), url)
 }
 
 // Run запускает цикл по обработке таймеров и ожидания сигналов от ОС
@@ -81,7 +82,7 @@ func (collector *Agent) Run() error {
 
 // prepareGauges - готовит map[string]float64 с метриками gauges для отправки на сервер,
 // так как класс метрики довольно жирный передает через указатель
-func (metrics *RuntimeMetrics) prepareGauges() []storage.Metrics {
+func (metrics *RuntimeMetrics) prepareGauges(secretKey string) []storage.Metrics {
 	gauges := map[string]float64{
 		"Alloc":         float64(metrics.Alloc),
 		"BuckHashSys":   float64(metrics.BuckHashSys),
@@ -112,7 +113,7 @@ func (metrics *RuntimeMetrics) prepareGauges() []storage.Metrics {
 		"TotalAlloc":    float64(metrics.TotalAlloc),
 		"RandomValue":   metrics.RandomValue,
 	}
-
+	hashFunc := hash.CreateEncodeFunc(secretKey)
 	result := make([]storage.Metrics, 0, len(gauges))
 	for name, value := range gauges {
 		// Если пользоваться value, то все значения будут ссылаться на одну и ту же переменную - последнюю
@@ -122,6 +123,7 @@ func (metrics *RuntimeMetrics) prepareGauges() []storage.Metrics {
 			MType: storage.Gauge,
 			Value: &gaugeValue,
 		}
+		metric.Hash = metric.CalcHash(hashFunc)
 		result = append(result, metric)
 	}
 	return result
@@ -129,11 +131,12 @@ func (metrics *RuntimeMetrics) prepareGauges() []storage.Metrics {
 
 // prepareCounters - готовит map[string]int64 с метриками counter для отправки на сервер,
 // пока такая метрика одна, но для обобщения сделан сразу метод
-func (metrics *RuntimeMetrics) prepareCounters() []storage.Metrics {
+func (metrics *RuntimeMetrics) prepareCounters(secretKey string) []storage.Metrics {
 	counters := map[string]int64{
 		"PollCount": metrics.PollCount,
 	}
 
+	hashFunc := hash.CreateEncodeFunc(secretKey)
 	result := make([]storage.Metrics, 0, len(counters))
 	for name, value := range counters {
 		// Если пользоваться value, то все значения будут ссылаться на одну и ту же переменную - последнюю
@@ -143,6 +146,7 @@ func (metrics *RuntimeMetrics) prepareCounters() []storage.Metrics {
 			MType: storage.Counter,
 			Delta: &counterValue,
 		}
+		metric.Hash = metric.CalcHash(hashFunc)
 		result = append(result, metric)
 	}
 	return result

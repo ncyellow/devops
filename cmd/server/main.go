@@ -18,6 +18,8 @@ func main() {
 	flag.DurationVar(&cfg.StoreInterval, "i", time.Second*300, "store interval in the format 300s")
 	flag.BoolVar(&cfg.Restore, "r", true, "restore from file. true if needed")
 	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "filename that used for save metrics state")
+	flag.StringVar(&cfg.SecretKey, "k", "127.0.0.1:8080", "key for hash metrics")
+
 	// Сначала парсим командную строку
 	flag.Parse()
 

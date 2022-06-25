@@ -17,13 +17,13 @@ type Server struct {
 }
 
 func (s Server) RunServer() {
-	repo := storage.NewRepository()
+	repo := storage.NewRepository(s.Conf)
 
 	if s.Conf.Restore {
 		storage.RestoreFromFile(s.Conf.StoreFile, repo)
 	}
 
-	r := handlers.NewRouter(repo)
+	r := handlers.NewRouter(repo, s.Conf)
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)

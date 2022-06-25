@@ -3,6 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ncyellow/devops/internal/hash"
+	"github.com/ncyellow/devops/internal/server/config"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -14,7 +16,7 @@ import (
 )
 
 // NewRouter создает chi.NewRouter и описывает маршрутизацию по url
-func NewRouter(repo storage.Repository) chi.Router {
+func NewRouter(repo storage.Repository, conf *config.Config) chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(middlewares.EncoderGZIP)
@@ -22,7 +24,7 @@ func NewRouter(repo storage.Repository) chi.Router {
 	r.Get("/", ListHandler(repo))
 	r.Get("/value/{metricType}/{metricName}", ValueHandler(repo))
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", UpdateHandler(repo))
-	r.Post("/update/", UpdateJSONHandler(repo))
+	r.Post("/update/", UpdateJSONHandler(repo, conf))
 	r.Post("/value/", ValueJSONHandler(repo))
 	return r
 }
@@ -123,7 +125,7 @@ func ListHandler(repo storage.Repository) http.HandlerFunc {
 }
 
 // UpdateJSONHandler обрабатывает POST запросы на обновление метрик в виде json
-func UpdateJSONHandler(repo storage.Repository) http.HandlerFunc {
+func UpdateJSONHandler(repo storage.Repository, conf *config.Config) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 
 		if r.Header.Get("Content-Type") != "application/json" {
@@ -143,6 +145,14 @@ func UpdateJSONHandler(repo storage.Repository) http.HandlerFunc {
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			rw.Write([]byte("invalid deserialization"))
+			return
+		}
+
+		encodeFunc := hash.CreateEncodeFunc(conf.SecretKey)
+		ok := hash.CheckSign(conf.SecretKey, metric.Hash, metric.CalcHash(encodeFunc))
+		if !ok {
+			rw.WriteHeader(http.StatusBadRequest)
+			rw.Write([]byte("incorrect metric sign"))
 			return
 		}
 

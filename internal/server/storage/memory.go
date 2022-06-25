@@ -3,11 +3,14 @@ package storage
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ncyellow/devops/internal/hash"
+	"github.com/ncyellow/devops/internal/server/config"
 	"sync"
 )
 
 // MapRepository хранилище метрик на основе map, реализует интерфейс Repository
 type MapRepository struct {
+	conf     *config.Config
 	gauges   map[string]float64
 	counters map[string]int64
 
@@ -17,8 +20,9 @@ type MapRepository struct {
 }
 
 // NewRepository конструктор
-func NewRepository() Repository {
+func NewRepository(conf *config.Config) Repository {
 	repo := MapRepository{}
+	repo.conf = conf
 	repo.gauges = make(map[string]float64)
 	repo.counters = make(map[string]int64)
 
@@ -133,26 +137,31 @@ func (s *MapRepository) String() string {
 func (s *MapRepository) toMetrics() []Metrics {
 	totalCount := len(s.gauges) + len(s.counters)
 	metrics := make([]Metrics, 0, totalCount)
+	hashFunc := hash.CreateEncodeFunc(s.conf.SecretKey)
 
 	s.gaugesLock.RLock()
 	for name, value := range s.gauges {
 		gaugeValue := value
-		metrics = append(metrics, Metrics{
+		metric := Metrics{
 			ID:    name,
 			MType: Gauge,
 			Value: &gaugeValue,
-		})
+		}
+		metric.Hash = metric.CalcHash(hashFunc)
+		metrics = append(metrics, metric)
 	}
 	s.gaugesLock.RUnlock()
 
 	s.countersLock.RLock()
 	for name, value := range s.counters {
 		counterValue := value
-		metrics = append(metrics, Metrics{
+		metric := Metrics{
 			ID:    name,
 			MType: Counter,
 			Delta: &counterValue,
-		})
+		}
+		metric.Hash = metric.CalcHash(hashFunc)
+		metrics = append(metrics, metric)
 	}
 	s.countersLock.RUnlock()
 	return metrics

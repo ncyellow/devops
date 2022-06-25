@@ -28,7 +28,7 @@ func NewRouter(repo storage.Repository, conf *config.Config) chi.Router {
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", UpdateHandler(repo))
 	r.Post("/update/", UpdateJSONHandler(repo, conf))
 	r.Post("/value/", ValueJSONHandler(repo, conf))
-	r.Get("/ping/", PingPGHandler(repo, conf))
+	r.Get("/ping", PingPGHandler(repo, conf))
 	return r
 }
 

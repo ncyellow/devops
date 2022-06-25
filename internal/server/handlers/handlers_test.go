@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"fmt"
+	"github.com/ncyellow/devops/internal/server/config"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -35,8 +36,9 @@ type HandlersSuite struct {
 // SetupSuite перед началом теста стартуем новый сервер httptest.Server делаем так, чтобы тестировать каждый
 // handler отдельно и не сливать все тесты в один
 func (suite *HandlersSuite) SetupTest() {
-	repo := storage.NewRepository()
-	r := NewRouter(repo)
+	conf := config.Config{}
+	repo := storage.NewRepository(&conf)
+	r := NewRouter(repo, &conf)
 
 	suite.ts = httptest.NewServer(r)
 }

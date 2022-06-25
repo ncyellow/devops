@@ -3,7 +3,6 @@ package hash
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 )
 
@@ -20,7 +19,7 @@ func CreateEncodeFunc(secretKey string) EncodeFunc {
 		h := hmac.New(sha256.New, []byte(secretKey))
 		h.Write([]byte(data))
 		sign := h.Sum(nil)
-		return base64.StdEncoding.EncodeToString(sign)
+		return hex.EncodeToString(sign)
 	}
 }
 

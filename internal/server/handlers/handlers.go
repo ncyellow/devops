@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/jackc/pgx/v4"
 	"github.com/ncyellow/devops/internal/hash"
 	"github.com/ncyellow/devops/internal/server/config"
 	"io/ioutil"
@@ -26,6 +28,7 @@ func NewRouter(repo storage.Repository, conf *config.Config) chi.Router {
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", UpdateHandler(repo))
 	r.Post("/update/", UpdateJSONHandler(repo, conf))
 	r.Post("/value/", ValueJSONHandler(repo, conf))
+	r.Get("/ping/", PingPGHandler(repo, conf))
 	return r
 }
 
@@ -214,5 +217,30 @@ func ValueJSONHandler(repo storage.Repository, conf *config.Config) http.Handler
 		}
 
 		rw.WriteHeader(http.StatusNotFound)
+	}
+}
+
+// PingPGHandler возвращает доступность базы данных
+func PingPGHandler(repo storage.Repository, conf *config.Config) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+
+		conn, err := pgx.Connect(context.Background(), conf.DatabaseConn)
+		defer conn.Close(context.Background())
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			fmt.Println(err)
+			rw.Write([]byte("no connection"))
+			return
+		}
+
+		var result int
+		err = conn.QueryRow(r.Context(), "select 1").Scan(&result)
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte("query error"))
+			return
+		}
+		rw.WriteHeader(http.StatusOK)
+		rw.Write([]byte("ok"))
 	}
 }

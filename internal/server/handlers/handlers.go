@@ -225,13 +225,13 @@ func PingPGHandler(repo storage.Repository, conf *config.Config) http.HandlerFun
 	return func(rw http.ResponseWriter, r *http.Request) {
 
 		conn, err := pgx.Connect(context.Background(), conf.DatabaseConn)
-		defer conn.Close(context.Background())
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			fmt.Println(err)
 			rw.Write([]byte("no connection"))
 			return
 		}
+		defer conn.Close(context.Background())
 
 		var result int
 		err = conn.QueryRow(r.Context(), "select 1").Scan(&result)

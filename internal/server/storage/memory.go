@@ -72,29 +72,34 @@ func (s *MapRepository) Counter(name string) (val int64, ok bool) {
 }
 
 func (s *MapRepository) Metric(name string, mType string) (val Metrics, ok bool) {
+	encodeFunc := hash.CreateEncodeFunc(s.conf.SecretKey)
 	switch mType {
 	case Gauge:
 		val, ok := s.Gauge(name)
 		if !ok {
 			return Metrics{}, ok
 		}
-		return Metrics{
+		metric := Metrics{
 			ID:    name,
 			MType: mType,
 			Value: &val,
 			Delta: nil,
-		}, ok
+		}
+		metric.CalcHash(encodeFunc)
+		return metric, ok
 	case Counter:
 		val, ok := s.Counter(name)
 		if !ok {
 			return Metrics{}, ok
 		}
-		return Metrics{
+		metric := Metrics{
 			ID:    name,
 			MType: mType,
 			Value: nil,
 			Delta: &val,
-		}, ok
+		}
+		metric.CalcHash(encodeFunc)
+		return metric, ok
 	default:
 		return Metrics{}, false
 	}

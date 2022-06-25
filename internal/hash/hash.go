@@ -14,10 +14,8 @@ func CreateEncodeFunc(secretKey string) EncodeFunc {
 			return ""
 		}
 
-		data := hex.EncodeToString([]byte(msg))
-
 		h := hmac.New(sha256.New, []byte(secretKey))
-		h.Write([]byte(data))
+		h.Write([]byte(msg))
 		sign := h.Sum(nil)
 		return hex.EncodeToString(sign)
 	}

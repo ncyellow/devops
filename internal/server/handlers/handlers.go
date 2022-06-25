@@ -25,7 +25,7 @@ func NewRouter(repo storage.Repository, conf *config.Config) chi.Router {
 	r.Get("/value/{metricType}/{metricName}", ValueHandler(repo))
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", UpdateHandler(repo))
 	r.Post("/update/", UpdateJSONHandler(repo, conf))
-	r.Post("/value/", ValueJSONHandler(repo))
+	r.Post("/value/", ValueJSONHandler(repo, conf))
 	return r
 }
 
@@ -169,7 +169,7 @@ func UpdateJSONHandler(repo storage.Repository, conf *config.Config) http.Handle
 }
 
 // ValueJSONHandler обрабатывает POST запрос, который возвращает список всех метрик в виде json
-func ValueJSONHandler(repo storage.Repository) http.HandlerFunc {
+func ValueJSONHandler(repo storage.Repository, conf *config.Config) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 
 		if r.Header.Get("Content-Type") != "application/json" {
@@ -199,6 +199,9 @@ func ValueJSONHandler(repo storage.Repository) http.HandlerFunc {
 
 		val, ok := repo.Metric(metricName, metricType)
 		if ok {
+			encodeFunc := hash.CreateEncodeFunc(conf.SecretKey)
+			val.Hash = val.CalcHash(encodeFunc)
+
 			result, ok := json.Marshal(val)
 			if ok != nil {
 				rw.WriteHeader(http.StatusInternalServerError)

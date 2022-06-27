@@ -172,7 +172,7 @@ func (p *PgStorageSaver) Load(repo Repository) error {
 	repo.FromMetrics(metrics)
 	fmt.Println("Загружаем метрики из базы данных")
 	jRes, _ := json.Marshal(metrics)
-	fmt.Println(jRes)
+	fmt.Println(string(jRes))
 
 	return nil
 }
@@ -246,6 +246,6 @@ func (p *PgStorageSaver) Save(repo Repository) error {
 
 	fmt.Println("Все сохранено")
 	jRes, _ := json.Marshal(metrics)
-	fmt.Println(jRes)
+	fmt.Println(string(jRes))
 	return nil
 }

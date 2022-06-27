@@ -26,9 +26,7 @@ func (s Server) RunServer() {
 	}
 	defer saver.Close()
 
-	if s.Conf.Restore {
-		saver.Load(repo)
-	}
+	saver.Load(repo)
 
 	r := handlers.NewRouter(repo, s.Conf)
 

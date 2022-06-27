@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -169,7 +170,9 @@ func (p *PgStorageSaver) Load(repo Repository) error {
 	rows.Close()
 
 	repo.FromMetrics(metrics)
-	fmt.Println(metrics)
+	fmt.Println("Загружаем метрики из базы данных")
+	jRes, _ := json.Marshal(metrics)
+	fmt.Println(jRes)
 
 	return nil
 }
@@ -179,6 +182,8 @@ func (p *PgStorageSaver) Load(repo Repository) error {
 func (p *PgStorageSaver) Save(repo Repository) error {
 
 	metrics := repo.ToMetrics()
+
+	fmt.Println("Начинаем загружать метрики в базу данных")
 
 	if len(metrics) == 0 {
 		return nil
@@ -239,5 +244,8 @@ func (p *PgStorageSaver) Save(repo Repository) error {
 		fmt.Println("have some error while copyFrom gauges")
 	}
 
+	fmt.Println("Все сохранено")
+	jRes, _ := json.Marshal(metrics)
+	fmt.Println(jRes)
 	return nil
 }

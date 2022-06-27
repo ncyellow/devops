@@ -49,7 +49,9 @@ func (m *MemoryStorageSaver) Close() {
 }
 
 func (m *MemoryStorageSaver) Load(repo Repository) error {
-	RestoreFromFile(m.conf.StoreFile, repo)
+	if m.conf.Restore {
+		RestoreFromFile(m.conf.StoreFile, repo)
+	}
 	return nil
 }
 

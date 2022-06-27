@@ -216,6 +216,8 @@ func (p *PgStorageSaver) Save(repo Repository) error {
 		}
 	}
 
+	fmt.Printf("\nвсе counter метрики - %#v\n", counters)
+
 	copyCount, err := p.conn.CopyFrom(
 		context.Background(),
 		pgx.Identifier{"counters"},
@@ -224,6 +226,8 @@ func (p *PgStorageSaver) Save(repo Repository) error {
 			return []interface{}{counters[i].ID, *counters[i].Delta}, nil
 		}),
 	)
+
+	fmt.Printf("\nв базу записалось - %d\n", copyCount)
 
 	if err != nil {
 		fmt.Println("have some error while copyFrom counters")

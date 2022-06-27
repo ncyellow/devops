@@ -14,7 +14,7 @@ import (
 type Saver interface {
 	Save(repo Repository) error
 	Load(repo Repository) error
-	Close()
+	Close(repo Repository)
 }
 
 // RunSaver запускает сохранение данных repo по таймеру в файл
@@ -111,7 +111,8 @@ func NewSaver(conf *config.Config) (Saver, error) {
 
 }
 
-func (p *PgStorageSaver) Close() {
+func (p *PgStorageSaver) Close(repo Repository) {
+	p.Save(repo)
 	p.conn.Close(context.Background())
 }
 

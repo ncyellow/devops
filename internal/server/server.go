@@ -24,7 +24,7 @@ func (s Server) RunServer() {
 	if err != nil {
 		fmt.Println("cant create NewSaver")
 	}
-	defer saver.Close()
+	defer saver.Close(repo)
 
 	saver.Load(repo)
 

@@ -12,7 +12,7 @@ import (
 type NullSaver struct {
 }
 
-func (m *NullSaver) Close() {
+func (m *NullSaver) Close(repo Repository) {
 }
 
 func (m *NullSaver) Load(repo Repository) error {
@@ -45,7 +45,7 @@ func CreateSaver(conf *config.Config) (Saver, error) {
 	return NewNullSaver()
 }
 
-func (m *MemoryStorageSaver) Close() {
+func (m *MemoryStorageSaver) Close(repo Repository) {
 }
 
 func (m *MemoryStorageSaver) Load(repo Repository) error {

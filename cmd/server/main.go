@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"time"
 
@@ -31,6 +32,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Printf("Настройки запуска - %#v\n", cfg)
 
 	server := server.Server{Conf: &cfg}
 	server.RunServer()

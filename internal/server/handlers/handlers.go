@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/jackc/pgx/v4"
-	"github.com/ncyellow/devops/internal/hash"
-	"github.com/ncyellow/devops/internal/server/config"
 	"io/ioutil"
 	"net/http"
 	"strconv"
+
+	"github.com/jackc/pgx/v4"
+	"github.com/ncyellow/devops/internal/hash"
+	"github.com/ncyellow/devops/internal/server/config"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

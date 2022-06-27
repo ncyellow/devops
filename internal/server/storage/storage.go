@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+
 	"github.com/ncyellow/devops/internal/hash"
 )
 
@@ -51,6 +52,10 @@ type Repository interface {
 
 	// UpdateMetric обновляет данные в хранилище по значению Metrics
 	UpdateMetric(metrics Metrics) error
+
+	FromMetrics(metrics []Metrics)
+
+	ToMetrics() []Metrics
 
 	// Stringer Вывод в строку всех метрик хранилища
 	fmt.Stringer

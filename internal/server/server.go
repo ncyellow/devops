@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -19,8 +20,14 @@ type Server struct {
 func (s Server) RunServer() {
 	repo := storage.NewRepository(s.Conf)
 
+	saver, err := storage.CreateSaver(s.Conf)
+	if err != nil {
+		fmt.Println("cant create NewSaver")
+	}
+	defer saver.Close()
+
 	if s.Conf.Restore {
-		storage.RestoreFromFile(s.Conf.StoreFile, repo)
+		saver.Load(repo)
 	}
 
 	r := handlers.NewRouter(repo, s.Conf)
@@ -33,7 +40,8 @@ func (s Server) RunServer() {
 			log.Fatalf("listen: %s\n", err)
 		}
 	}()
-	go storage.RunStorageSaver(s.Conf, repo)
+
+	go storage.RunSaver(saver, repo, s.Conf.StoreInterval)
 
 	<-done
 }

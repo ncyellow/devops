@@ -9,6 +9,55 @@ import (
 	"github.com/ncyellow/devops/internal/server/config"
 )
 
+type NullSaver struct {
+}
+
+func (m *NullSaver) Close() {
+}
+
+func (m *NullSaver) Load(repo Repository) error {
+	return nil
+}
+
+func (m *NullSaver) Save(repo Repository) error {
+	return nil
+}
+
+func NewNullSaver() (Saver, error) {
+	return &NullSaver{}, nil
+}
+
+type MemoryStorageSaver struct {
+	conf *config.Config
+}
+
+func NewMemorySaver(conf *config.Config) (Saver, error) {
+	saver := MemoryStorageSaver{conf: conf}
+	return &saver, nil
+}
+
+func CreateSaver(conf *config.Config) (Saver, error) {
+	if conf.DatabaseConn != "" {
+		return NewSaver(conf)
+	} else if conf.StoreFile != "" {
+		return NewMemorySaver(conf)
+	}
+	return NewNullSaver()
+}
+
+func (m *MemoryStorageSaver) Close() {
+}
+
+func (m *MemoryStorageSaver) Load(repo Repository) error {
+	RestoreFromFile(m.conf.StoreFile, repo)
+	return nil
+}
+
+func (m *MemoryStorageSaver) Save(repo Repository) error {
+	SaveToFile(m.conf.StoreFile, repo)
+	return nil
+}
+
 // SaveToFile сохраняет данные repo в файл с именем fileName
 func SaveToFile(fileName string, repo Repository) {
 	//! Если файл не задан, ок ничего не делаем

@@ -3,9 +3,10 @@ package storage
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
+
 	"github.com/ncyellow/devops/internal/hash"
 	"github.com/ncyellow/devops/internal/server/config"
-	"sync"
 )
 
 // MapRepository хранилище метрик на основе map, реализует интерфейс Repository
@@ -138,8 +139,8 @@ func (s *MapRepository) String() string {
 	return fmt.Sprintf(htmlTmpl, gaugesText, countersText)
 }
 
-// toMetrics Конвертация данных MapRepository в []Metrics
-func (s *MapRepository) toMetrics() []Metrics {
+// ToMetrics Конвертация данных MapRepository в []Metrics
+func (s *MapRepository) ToMetrics() []Metrics {
 	totalCount := len(s.gauges) + len(s.counters)
 	metrics := make([]Metrics, 0, totalCount)
 	hashFunc := hash.CreateEncodeFunc(s.conf.SecretKey)
@@ -172,8 +173,8 @@ func (s *MapRepository) toMetrics() []Metrics {
 	return metrics
 }
 
-// fromMetrics - обновляет метрики в MapRepository по []Metrics
-func (s *MapRepository) fromMetrics(metrics []Metrics) {
+// FromMetrics - обновляет метрики в MapRepository по []Metrics
+func (s *MapRepository) FromMetrics(metrics []Metrics) {
 	for _, metric := range metrics {
 		switch metric.MType {
 		case Gauge:
@@ -190,7 +191,7 @@ func (s *MapRepository) fromMetrics(metrics []Metrics) {
 
 // MarshalJSON - реализация интерфейса Marshaler
 func (s *MapRepository) MarshalJSON() ([]byte, error) {
-	metrics := s.toMetrics()
+	metrics := s.ToMetrics()
 	jsMetrics, err := json.Marshal(metrics)
 	if err != nil {
 		return []byte{}, nil
@@ -205,6 +206,6 @@ func (s *MapRepository) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	s.fromMetrics(metrics)
+	s.FromMetrics(metrics)
 	return nil
 }

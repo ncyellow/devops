@@ -132,6 +132,7 @@ func ListHandler(repo storage.Repository) http.HandlerFunc {
 func UpdateJSONHandler(repo storage.Repository, conf *config.Config) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 
+		fmt.Println("UpdateJSONHandler")
 		if r.Header.Get("Content-Type") != "application/json" {
 			rw.WriteHeader(http.StatusInternalServerError)
 			rw.Write([]byte("content type not support"))
@@ -146,6 +147,8 @@ func UpdateJSONHandler(repo storage.Repository, conf *config.Config) http.Handle
 		}
 		metric := storage.Metrics{}
 		err = json.Unmarshal(reqBody, &metric)
+
+		fmt.Printf("пришло - %#v\n", metric)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			rw.Write([]byte("invalid deserialization"))
@@ -160,6 +163,7 @@ func UpdateJSONHandler(repo storage.Repository, conf *config.Config) http.Handle
 			return
 		}
 
+		fmt.Printf("Обновление метрики")
 		err = repo.UpdateMetric(metric)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)

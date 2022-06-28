@@ -42,7 +42,7 @@ func NewRouter(repo storage.Repository, conf *config.Config, pStore storage.Pers
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", handler.Update())
 	r.Post("/update/", handler.UpdateJSON())
 	r.Post("/value/", handler.ValueJSON())
-	r.Post("/ping", handler.Ping())
+	r.Get("/ping", handler.Ping())
 
 	return handler
 }

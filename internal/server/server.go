@@ -20,13 +20,13 @@ type Server struct {
 func (s Server) RunServer() {
 	repo := storage.NewRepository(s.Conf)
 
-	saver, err := storage.CreateSaver(s.Conf)
+	saver, err := storage.CreateSaver(s.Conf, repo)
 	if err != nil {
 		fmt.Println("cant create NewSaver")
 	}
-	defer saver.Close(repo)
+	defer saver.Close()
 
-	saver.Load(repo)
+	saver.Load()
 
 	r := handlers.NewRouter(repo, s.Conf, saver)
 
@@ -39,7 +39,7 @@ func (s Server) RunServer() {
 		}
 	}()
 
-	go storage.RunSaver(saver, repo, s.Conf.StoreInterval)
+	go storage.RunSaver(saver, s.Conf.StoreInterval)
 
 	<-done
 }

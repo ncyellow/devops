@@ -11,14 +11,8 @@ import (
 	"github.com/ncyellow/devops/internal/server/config"
 )
 
-type Saver interface {
-	Save(repo Repository) error
-	Load(repo Repository) error
-	Close(repo Repository)
-}
-
 // RunSaver запускает сохранение данных repo по таймеру в файл
-func RunSaver(saver Saver, repo Repository, interval time.Duration) {
+func RunSaver(pStore PersistentStorage, interval time.Duration) {
 	if interval == 0 {
 		//! Не нужно сбрасывать на диск если StoreInterval == 0
 		return
@@ -30,16 +24,17 @@ func RunSaver(saver Saver, repo Repository, interval time.Duration) {
 	for {
 		<-tickerStore.C
 		//! сбрасываем на диск
-		saver.Save(repo)
+		pStore.Save()
 	}
 }
 
-type PgStorageSaver struct {
+type PgPersistentStorage struct {
 	conf *config.Config
 	conn *pgx.Conn
+	repo Repository
 }
 
-func (p *PgStorageSaver) init() {
+func (p *PgPersistentStorage) init() {
 
 	// Это не clickhouse, где данные хорошо жмутся по столбцам и они не зависимы
 	// в postgresql таблица просто будет больше по размеру из-за пустых столбцов.
@@ -97,7 +92,7 @@ func (p *PgStorageSaver) init() {
 
 }
 
-func NewSaver(conf *config.Config) (Saver, error) {
+func NewSaver(conf *config.Config, repo Repository) (PersistentStorage, error) {
 
 	conn, err := pgx.Connect(context.Background(), conf.DatabaseConn)
 	if err != nil {
@@ -105,18 +100,18 @@ func NewSaver(conf *config.Config) (Saver, error) {
 	}
 	//defer conn.Close(context.Background())
 
-	saver := PgStorageSaver{conf: conf, conn: conn}
+	saver := PgPersistentStorage{conf: conf, conn: conn, repo: repo}
 	saver.init()
 	return &saver, nil
 
 }
 
-func (p *PgStorageSaver) Close(repo Repository) {
-	p.Save(repo)
+func (p *PgPersistentStorage) Close() {
+	p.Save()
 	p.conn.Close(context.Background())
 }
 
-func (p *PgStorageSaver) Load(repo Repository) error {
+func (p *PgPersistentStorage) Load() error {
 
 	metrics := make([]Metrics, 0)
 
@@ -170,19 +165,15 @@ func (p *PgStorageSaver) Load(repo Repository) error {
 
 	rows.Close()
 
-	repo.FromMetrics(metrics)
-	fmt.Println("Загружаем метрики из базы данных")
-	jRes, _ := json.Marshal(metrics)
-	fmt.Println(string(jRes))
-
+	p.repo.FromMetrics(metrics)
 	return nil
 }
 
 // Save - так как конкретных требований нет и не нужно хранить историю метрик, просто удаляем все что было
 // и вставляем новые значения
-func (p *PgStorageSaver) Save(repo Repository) error {
+func (p *PgPersistentStorage) Save() error {
 
-	metrics := repo.ToMetrics()
+	metrics := p.repo.ToMetrics()
 
 	fmt.Println("Начинаем загружать метрики в базу данных")
 

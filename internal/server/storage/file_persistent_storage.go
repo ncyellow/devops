@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/ncyellow/devops/internal/server/config"
 )
@@ -12,51 +11,52 @@ import (
 type NullSaver struct {
 }
 
-func (m *NullSaver) Close(repo Repository) {
+func (m *NullSaver) Close() {
 }
 
-func (m *NullSaver) Load(repo Repository) error {
+func (m *NullSaver) Load() error {
 	return nil
 }
 
-func (m *NullSaver) Save(repo Repository) error {
+func (m *NullSaver) Save() error {
 	return nil
 }
 
-func NewNullSaver() (Saver, error) {
+func NewNullSaver() (PersistentStorage, error) {
 	return &NullSaver{}, nil
 }
 
 type MemoryStorageSaver struct {
 	conf *config.Config
+	repo Repository
 }
 
-func NewMemorySaver(conf *config.Config) (Saver, error) {
-	saver := MemoryStorageSaver{conf: conf}
+func NewMemorySaver(conf *config.Config, repo Repository) (PersistentStorage, error) {
+	saver := MemoryStorageSaver{conf: conf, repo: repo}
 	return &saver, nil
 }
 
-func CreateSaver(conf *config.Config) (Saver, error) {
+func CreateSaver(conf *config.Config, repo Repository) (PersistentStorage, error) {
 	if conf.DatabaseConn != "" {
-		return NewSaver(conf)
+		return NewSaver(conf, repo)
 	} else if conf.StoreFile != "" {
-		return NewMemorySaver(conf)
+		return NewMemorySaver(conf, repo)
 	}
 	return NewNullSaver()
 }
 
-func (m *MemoryStorageSaver) Close(repo Repository) {
+func (m *MemoryStorageSaver) Close() {
 }
 
-func (m *MemoryStorageSaver) Load(repo Repository) error {
+func (m *MemoryStorageSaver) Load() error {
 	if m.conf.Restore {
-		RestoreFromFile(m.conf.StoreFile, repo)
+		RestoreFromFile(m.conf.StoreFile, m.repo)
 	}
 	return nil
 }
 
-func (m *MemoryStorageSaver) Save(repo Repository) error {
-	SaveToFile(m.conf.StoreFile, repo)
+func (m *MemoryStorageSaver) Save() error {
+	SaveToFile(m.conf.StoreFile, m.repo)
 	return nil
 }
 
@@ -87,21 +87,4 @@ func RestoreFromFile(fileName string, repo Repository) {
 	defer file.Close()
 	decoder := json.NewDecoder(file)
 	decoder.Decode(&repo)
-}
-
-// RunStorageSaver запускает сохранение данных repo по таймеру в файл
-func RunStorageSaver(config *config.Config, repo Repository) {
-	if config.StoreInterval == 0 {
-		//! Не нужно сбрасывать на диск если StoreInterval == 0
-		return
-	}
-
-	tickerStore := time.NewTicker(config.StoreInterval)
-	defer tickerStore.Stop()
-
-	for {
-		<-tickerStore.C
-		//! сбрасываем на диск
-		SaveToFile(config.StoreFile, repo)
-	}
 }

@@ -28,7 +28,7 @@ func (s Server) RunServer() {
 
 	saver.Load(repo)
 
-	r := handlers.NewRouter(repo, s.Conf)
+	r := handlers.NewRouter(repo, s.Conf, saver)
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)

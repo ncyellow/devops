@@ -19,7 +19,7 @@ import (
 )
 
 // NewRouter создает chi.NewRouter и описывает маршрутизацию по url
-func NewRouter(repo storage.Repository, conf *config.Config) chi.Router {
+func NewRouter(repo storage.Repository, conf *config.Config, saver storage.Saver) chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(middlewares.EncoderGZIP)
@@ -27,7 +27,7 @@ func NewRouter(repo storage.Repository, conf *config.Config) chi.Router {
 	r.Get("/", ListHandler(repo))
 	r.Get("/value/{metricType}/{metricName}", ValueHandler(repo))
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", UpdateHandler(repo))
-	r.Post("/update/", UpdateJSONHandler(repo, conf))
+	r.Post("/update/", UpdateJSONHandler(repo, conf, saver))
 	r.Post("/value/", ValueJSONHandler(repo, conf))
 	r.Get("/ping", PingPGHandler(repo, conf))
 	return r
@@ -129,7 +129,7 @@ func ListHandler(repo storage.Repository) http.HandlerFunc {
 }
 
 // UpdateJSONHandler обрабатывает POST запросы на обновление метрик в виде json
-func UpdateJSONHandler(repo storage.Repository, conf *config.Config) http.HandlerFunc {
+func UpdateJSONHandler(repo storage.Repository, conf *config.Config, saver storage.Saver) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 
 		fmt.Println("UpdateJSONHandler")
@@ -170,6 +170,7 @@ func UpdateJSONHandler(repo storage.Repository, conf *config.Config) http.Handle
 			rw.Write([]byte("incorrect metric type"))
 			return
 		}
+		saver.Save(repo)
 
 		rw.WriteHeader(http.StatusOK)
 		rw.Write([]byte("ok"))

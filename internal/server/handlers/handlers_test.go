@@ -3,11 +3,12 @@ package handlers
 import (
 	"bytes"
 	"fmt"
-	"github.com/ncyellow/devops/internal/server/config"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/ncyellow/devops/internal/server/config"
 
 	"github.com/ncyellow/devops/internal/server/storage"
 	"github.com/stretchr/testify/assert"
@@ -38,7 +39,10 @@ type HandlersSuite struct {
 func (suite *HandlersSuite) SetupTest() {
 	conf := config.Config{}
 	repo := storage.NewRepository(&conf)
-	r := NewRouter(repo, &conf)
+	//! Это пустой вариант хранилища без состояние. Ошибок нет
+	pStore, _ := storage.NewNullSaver()
+
+	r := NewRouter(repo, &conf, pStore)
 
 	suite.ts = httptest.NewServer(r)
 }

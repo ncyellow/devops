@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/ncyellow/devops/internal/hash"
 	"github.com/ncyellow/devops/internal/server/config"
+	"github.com/ncyellow/devops/internal/server/repository"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -21,12 +22,12 @@ import (
 type Handler struct {
 	*chi.Mux
 	conf   *config.Config
-	repo   storage.Repository
+	repo   repository.Repository
 	pStore storage.PersistentStorage
 }
 
 // NewRouter создает chi.NewRouter и описывает маршрутизацию по url
-func NewRouter(repo storage.Repository, conf *config.Config, pStore storage.PersistentStorage) chi.Router {
+func NewRouter(repo repository.Repository, conf *config.Config, pStore storage.PersistentStorage) chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(middlewares.EncoderGZIP)
@@ -42,6 +43,7 @@ func NewRouter(repo storage.Repository, conf *config.Config, pStore storage.Pers
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", handler.Update())
 	r.Post("/update/", handler.UpdateJSON())
 	r.Post("/value/", handler.ValueJSON())
+	r.Post("/updates/", handler.UpdateListJSON())
 	r.Get("/ping", handler.Ping())
 
 	return handler
@@ -60,7 +62,7 @@ func (h *Handler) Value() http.HandlerFunc {
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
 		switch metricType {
-		case storage.Gauge:
+		case repository.Gauge:
 			val, ok := h.repo.Gauge(metricName)
 			if ok {
 				rw.Write([]byte(fmt.Sprintf("%.03f", val)))
@@ -69,7 +71,7 @@ func (h *Handler) Value() http.HandlerFunc {
 				rw.WriteHeader(http.StatusNotFound)
 				return
 			}
-		case storage.Counter:
+		case repository.Counter:
 			val, ok := h.repo.Counter(metricName)
 			if ok {
 				rw.Write([]byte(fmt.Sprintf("%d", val)))
@@ -98,7 +100,7 @@ func (h *Handler) Update() http.HandlerFunc {
 		metricValue := chi.URLParam(r, "metricValue")
 
 		switch metricType {
-		case storage.Gauge:
+		case repository.Gauge:
 			value, err := strconv.ParseFloat(metricValue, 64)
 			//! Второй параметр обязательно кастится в float64
 			if err != nil {
@@ -112,7 +114,7 @@ func (h *Handler) Update() http.HandlerFunc {
 				rw.Write([]byte("incorrect metric name "))
 				return
 			}
-		case storage.Counter:
+		case repository.Counter:
 			value, err := strconv.ParseInt(metricValue, 10, 64)
 			//! Второй параметр обязательно кастится в int64
 			if err != nil {
@@ -152,7 +154,53 @@ func (h *Handler) UpdateJSON() http.HandlerFunc {
 			rw.Write([]byte("Read data problem"))
 			return
 		}
-		metric := storage.Metrics{}
+		metric := repository.Metrics{}
+		err = json.Unmarshal(reqBody, &metric)
+
+		fmt.Printf("пришло - %#v\n", metric)
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte("invalid deserialization"))
+			return
+		}
+
+		encodeFunc := hash.CreateEncodeFunc(h.conf.SecretKey)
+		ok := hash.CheckSign(h.conf.SecretKey, metric.Hash, metric.CalcHash(encodeFunc))
+		if !ok {
+			rw.WriteHeader(http.StatusBadRequest)
+			rw.Write([]byte("incorrect metric sign"))
+			return
+		}
+
+		fmt.Printf("Обновление метрики")
+		err = h.repo.UpdateMetric(metric)
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte("incorrect metric type"))
+			return
+		}
+		h.pStore.Save()
+
+		rw.WriteHeader(http.StatusOK)
+		rw.Write([]byte("ok"))
+	}
+}
+
+func (h *Handler) UpdateListJSON() http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Content-Type") != "application/json" {
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte("content type not support"))
+			return
+		}
+		reqBody, err := ioutil.ReadAll(r.Body)
+		defer r.Body.Close()
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte("Read data problem"))
+			return
+		}
+		metric := repository.Metrics{}
 		err = json.Unmarshal(reqBody, &metric)
 
 		fmt.Printf("пришло - %#v\n", metric)
@@ -201,7 +249,7 @@ func (h *Handler) ValueJSON() http.HandlerFunc {
 			return
 		}
 
-		metric := storage.Metrics{}
+		metric := repository.Metrics{}
 		err = json.Unmarshal(reqBody, &metric)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)

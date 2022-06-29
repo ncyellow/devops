@@ -10,6 +10,7 @@ import (
 
 	"github.com/ncyellow/devops/internal/server/config"
 	"github.com/ncyellow/devops/internal/server/handlers"
+	"github.com/ncyellow/devops/internal/server/repository"
 	"github.com/ncyellow/devops/internal/server/storage"
 )
 
@@ -18,7 +19,7 @@ type Server struct {
 }
 
 func (s Server) RunServer() {
-	repo := storage.NewRepository(s.Conf)
+	repo := repository.NewRepository(s.Conf)
 
 	saver, err := storage.CreateSaver(s.Conf, repo)
 	if err != nil {

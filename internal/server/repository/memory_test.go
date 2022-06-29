@@ -1,9 +1,11 @@
-package storage
+package repository
 
 import (
 	"encoding/json"
-	"github.com/ncyellow/devops/internal/server/config"
+
 	"testing"
+
+	"github.com/ncyellow/devops/internal/server/config"
 
 	"github.com/stretchr/testify/assert"
 )

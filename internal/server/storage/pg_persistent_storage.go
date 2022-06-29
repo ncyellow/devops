@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v4"
 	"github.com/ncyellow/devops/internal/server/config"
+	"github.com/ncyellow/devops/internal/server/repository"
 )
 
 // RunSaver запускает сохранение данных repo по таймеру в файл
@@ -31,7 +32,7 @@ func RunSaver(pStore PersistentStorage, interval time.Duration) {
 type PgPersistentStorage struct {
 	conf *config.Config
 	conn *pgx.Conn
-	repo Repository
+	repo repository.Repository
 }
 
 func (p *PgPersistentStorage) init() {
@@ -92,7 +93,7 @@ func (p *PgPersistentStorage) init() {
 
 }
 
-func NewSaver(conf *config.Config, repo Repository) (PersistentStorage, error) {
+func NewSaver(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
 
 	conn, err := pgx.Connect(context.Background(), conf.DatabaseConn)
 	if err != nil {
@@ -113,7 +114,7 @@ func (p *PgPersistentStorage) Close() {
 
 func (p *PgPersistentStorage) Load() error {
 
-	metrics := make([]Metrics, 0)
+	metrics := make([]repository.Metrics, 0)
 
 	rows, err := p.conn.Query(context.Background(), `
 	select "metric_name", "value" FROM "counters"
@@ -131,9 +132,9 @@ func (p *PgPersistentStorage) Load() error {
 			return err
 		}
 
-		metrics = append(metrics, Metrics{
+		metrics = append(metrics, repository.Metrics{
 			ID:    metricName,
-			MType: Counter,
+			MType: repository.Counter,
 			Delta: &delta,
 		})
 	}
@@ -156,9 +157,9 @@ func (p *PgPersistentStorage) Load() error {
 			return err
 		}
 
-		metrics = append(metrics, Metrics{
+		metrics = append(metrics, repository.Metrics{
 			ID:    metricName,
-			MType: Gauge,
+			MType: repository.Gauge,
 			Value: &value,
 		})
 	}
@@ -195,14 +196,14 @@ func (p *PgPersistentStorage) Save() error {
 		fmt.Println("have some error while truncate gauges")
 	}
 
-	counters := make([]Metrics, 0)
-	gauges := make([]Metrics, 0)
+	counters := make([]repository.Metrics, 0)
+	gauges := make([]repository.Metrics, 0)
 
 	for _, value := range metrics {
 		switch value.MType {
-		case Gauge:
+		case repository.Gauge:
 			gauges = append(gauges, value)
-		case Counter:
+		case repository.Counter:
 			counters = append(counters, value)
 		}
 	}

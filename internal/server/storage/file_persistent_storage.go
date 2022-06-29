@@ -6,62 +6,36 @@ import (
 	"os"
 
 	"github.com/ncyellow/devops/internal/server/config"
+	"github.com/ncyellow/devops/internal/server/repository"
 )
 
-type NullSaver struct {
-}
-
-func (m *NullSaver) Close() {
-}
-
-func (m *NullSaver) Load() error {
-	return nil
-}
-
-func (m *NullSaver) Save() error {
-	return nil
-}
-
-func NewNullSaver() (PersistentStorage, error) {
-	return &NullSaver{}, nil
-}
-
-type MemoryStorageSaver struct {
+type FileStorageSaver struct {
 	conf *config.Config
-	repo Repository
+	repo repository.Repository
 }
 
-func NewMemorySaver(conf *config.Config, repo Repository) (PersistentStorage, error) {
-	saver := MemoryStorageSaver{conf: conf, repo: repo}
+func NewMemorySaver(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
+	saver := FileStorageSaver{conf: conf, repo: repo}
 	return &saver, nil
 }
 
-func CreateSaver(conf *config.Config, repo Repository) (PersistentStorage, error) {
-	if conf.DatabaseConn != "" {
-		return NewSaver(conf, repo)
-	} else if conf.StoreFile != "" {
-		return NewMemorySaver(conf, repo)
-	}
-	return NewNullSaver()
+func (m *FileStorageSaver) Close() {
 }
 
-func (m *MemoryStorageSaver) Close() {
-}
-
-func (m *MemoryStorageSaver) Load() error {
+func (m *FileStorageSaver) Load() error {
 	if m.conf.Restore {
 		RestoreFromFile(m.conf.StoreFile, m.repo)
 	}
 	return nil
 }
 
-func (m *MemoryStorageSaver) Save() error {
+func (m *FileStorageSaver) Save() error {
 	SaveToFile(m.conf.StoreFile, m.repo)
 	return nil
 }
 
 // SaveToFile сохраняет данные repo в файл с именем fileName
-func SaveToFile(fileName string, repo Repository) {
+func SaveToFile(fileName string, repo repository.Repository) {
 	//! Если файл не задан, ок ничего не делаем
 	if fileName == "" {
 		return
@@ -78,7 +52,7 @@ func SaveToFile(fileName string, repo Repository) {
 }
 
 // RestoreFromFile загружает данные в repo из файла с именем fileName
-func RestoreFromFile(fileName string, repo Repository) {
+func RestoreFromFile(fileName string, repo repository.Repository) {
 	file, err := os.OpenFile(fileName, os.O_RDONLY, 0777)
 	if err != nil {
 		fmt.Printf("can't open file %s", fileName)

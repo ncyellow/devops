@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ncyellow/devops/internal/server/config"
+	"github.com/ncyellow/devops/internal/server/repository"
 
 	"github.com/ncyellow/devops/internal/server/storage"
 	"github.com/stretchr/testify/assert"
@@ -38,9 +39,9 @@ type HandlersSuite struct {
 // handler отдельно и не сливать все тесты в один
 func (suite *HandlersSuite) SetupTest() {
 	conf := config.Config{}
-	repo := storage.NewRepository(&conf)
+	repo := repository.NewRepository(&conf)
 	//! Это пустой вариант хранилища без состояние. Ошибок нет
-	pStore, _ := storage.NewNullSaver()
+	pStore, _ := storage.NewFakeStorage()
 
 	r := NewRouter(repo, &conf, pStore)
 

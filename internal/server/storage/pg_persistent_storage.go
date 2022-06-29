@@ -2,14 +2,12 @@ package storage
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
-	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/ncyellow/devops/internal/server/config"
 	"github.com/ncyellow/devops/internal/server/repository"
+	"github.com/rs/zerolog/log"
 )
 
 // RunSaver запускает сохранение данных repo по таймеру в файл
@@ -51,7 +49,7 @@ func (p *PgPersistentStorage) init() {
 	rows.Close()
 
 	if err != nil {
-		fmt.Println("create table error counters")
+		log.Warn().Msgf("Ошибка при создании таблицы counters - %#v\n", err)
 	}
 
 	rows, err = p.conn.Query(context.Background(), `
@@ -62,8 +60,7 @@ func (p *PgPersistentStorage) init() {
 	rows.Close()
 
 	if err != nil {
-		fmt.Println("create index unique error counters")
-		fmt.Println(err)
+		log.Warn().Msgf("Ошибка при индекса уникальности по имени метрики counters - %#v\n", err)
 	}
 
 	rows, err = p.conn.Query(context.Background(), `
@@ -75,8 +72,8 @@ func (p *PgPersistentStorage) init() {
 	rows.Close()
 
 	if err != nil {
-		fmt.Println("create table error gauges")
-		fmt.Println(err)
+		log.Warn().Msgf("Ошибка при создании таблицы gauges - %#v\n", err)
+
 	}
 
 	rows, err = p.conn.Query(context.Background(), `
@@ -87,20 +84,18 @@ func (p *PgPersistentStorage) init() {
 	rows.Close()
 
 	if err != nil {
-		fmt.Println("create index unique error gauges")
-		fmt.Println(err)
+		log.Warn().Msgf("Ошибка при индекса уникальности по имени метрики gauges - %#v\n", err)
+
 	}
 
 }
 
-func NewSaver(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
+func NewPGStorage(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
 
 	conn, err := pgx.Connect(context.Background(), conf.DatabaseConn)
 	if err != nil {
-		return nil, errors.New("cant connect to pgsql")
+		return nil, err
 	}
-	//defer conn.Close(context.Background())
-
 	saver := PgPersistentStorage{conf: conf, conn: conn, repo: repo}
 	saver.init()
 	return &saver, nil
@@ -176,8 +171,6 @@ func (p *PgPersistentStorage) Save() error {
 
 	metrics := p.repo.ToMetrics()
 
-	fmt.Println("Начинаем загружать метрики в базу данных")
-
 	if len(metrics) == 0 {
 		return nil
 	}
@@ -186,14 +179,14 @@ func (p *PgPersistentStorage) Save() error {
 	TRUNCATE TABLE "counters"
 	`)
 	if err != nil {
-		fmt.Println("have some error while truncate counters")
+		log.Warn().Msgf("have some error while truncate counters - %#v\n", err)
 	}
 
 	_, err = p.conn.Exec(context.Background(), `
 	TRUNCATE TABLE "gauges"
 	`)
 	if err != nil {
-		fmt.Println("have some error while truncate gauges")
+		log.Warn().Msgf("have some error while truncate gauges - %#v\n", err)
 	}
 
 	counters := make([]repository.Metrics, 0)
@@ -208,9 +201,7 @@ func (p *PgPersistentStorage) Save() error {
 		}
 	}
 
-	fmt.Printf("\nвсе counter метрики - %#v\n", counters)
-
-	copyCount, err := p.conn.CopyFrom(
+	_, err = p.conn.CopyFrom(
 		context.Background(),
 		pgx.Identifier{"counters"},
 		[]string{"metric_name", "value"},
@@ -219,15 +210,11 @@ func (p *PgPersistentStorage) Save() error {
 		}),
 	)
 
-	fmt.Printf("\nв базу записалось - %d\n", copyCount)
-
 	if err != nil {
-		fmt.Println("have some error while copyFrom counters")
-		fmt.Println(copyCount)
-
+		log.Warn().Msgf("have some error while copyFrom counters - %#v\n", err)
 	}
 
-	countRows, err := p.conn.CopyFrom(
+	_, err = p.conn.CopyFrom(
 		context.Background(),
 		pgx.Identifier{"gauges"},
 		[]string{"metric_name", "value"},
@@ -236,13 +223,8 @@ func (p *PgPersistentStorage) Save() error {
 		}),
 	)
 
-	fmt.Println(countRows)
 	if err != nil {
-		fmt.Println("have some error while copyFrom gauges")
+		log.Warn().Msgf("have some error while copyFrom gauges - %#v\n", err)
 	}
-
-	fmt.Println("Все сохранено")
-	jRes, _ := json.Marshal(metrics)
-	fmt.Println(string(jRes))
 	return nil
 }

@@ -2,11 +2,11 @@ package storage
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 
 	"github.com/ncyellow/devops/internal/server/config"
 	"github.com/ncyellow/devops/internal/server/repository"
+	"github.com/rs/zerolog/log"
 )
 
 type FileStorageSaver struct {
@@ -14,7 +14,7 @@ type FileStorageSaver struct {
 	repo repository.Repository
 }
 
-func NewMemorySaver(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
+func NewFileStorage(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
 	saver := FileStorageSaver{conf: conf, repo: repo}
 	return &saver, nil
 }
@@ -43,7 +43,7 @@ func SaveToFile(fileName string, repo repository.Repository) {
 
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
-		fmt.Printf("can't open file %s", fileName)
+		log.Warn().Msgf("SaveToFile: can't open file %s - %#v", fileName, err)
 		return
 	}
 	defer file.Close()
@@ -55,7 +55,7 @@ func SaveToFile(fileName string, repo repository.Repository) {
 func RestoreFromFile(fileName string, repo repository.Repository) {
 	file, err := os.OpenFile(fileName, os.O_RDONLY, 0777)
 	if err != nil {
-		fmt.Printf("can't open file %s", fileName)
+		log.Warn().Msgf("RestoreFromFile: can't open file %s - %#v", fileName, err)
 		return
 	}
 	defer file.Close()

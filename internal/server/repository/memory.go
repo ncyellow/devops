@@ -42,7 +42,6 @@ func (s *MapRepository) UpdateGauge(name string, value float64) error {
 func (s *MapRepository) UpdateCounter(name string, value int64) error {
 	s.countersLock.Lock()
 	s.counters[name] = s.counters[name] + value
-	fmt.Printf("Обновление счетчика = %#v\n", s.counters)
 	s.countersLock.Unlock()
 	return nil
 }

@@ -200,30 +200,35 @@ func (h *Handler) UpdateListJSON() http.HandlerFunc {
 			rw.Write([]byte("Read data problem"))
 			return
 		}
-		metric := repository.Metrics{}
-		err = json.Unmarshal(reqBody, &metric)
+		var metrics []repository.Metrics
+		err = json.Unmarshal(reqBody, &metrics)
 
-		fmt.Printf("пришло - %#v\n", metric)
+		fmt.Printf("пришло - %#v\n", metrics)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			rw.Write([]byte("invalid deserialization"))
 			return
 		}
 
+		//! Проверяем подписи - если есть криво подписанные метрики то сразу отлуп
 		encodeFunc := hash.CreateEncodeFunc(h.conf.SecretKey)
-		ok := hash.CheckSign(h.conf.SecretKey, metric.Hash, metric.CalcHash(encodeFunc))
-		if !ok {
-			rw.WriteHeader(http.StatusBadRequest)
-			rw.Write([]byte("incorrect metric sign"))
-			return
+		for _, metric := range metrics {
+			ok := hash.CheckSign(h.conf.SecretKey, metric.Hash, metric.CalcHash(encodeFunc))
+			if !ok {
+				rw.WriteHeader(http.StatusBadRequest)
+				rw.Write([]byte("incorrect metric sign"))
+				return
+			}
 		}
 
 		fmt.Printf("Обновление метрики")
-		err = h.repo.UpdateMetric(metric)
-		if err != nil {
-			rw.WriteHeader(http.StatusInternalServerError)
-			rw.Write([]byte("incorrect metric type"))
-			return
+		for _, metric := range metrics {
+			err = h.repo.UpdateMetric(metric)
+			if err != nil {
+				rw.WriteHeader(http.StatusInternalServerError)
+				rw.Write([]byte("incorrect metric type"))
+				return
+			}
 		}
 		h.pStore.Save()
 

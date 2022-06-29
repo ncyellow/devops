@@ -46,6 +46,19 @@ func (collector *Agent) sendToServer() {
 	SendMetrics(collector.metrics.prepareCounters(collector.Conf.SecretKey), url)
 }
 
+// sendToServer отправка метрик на сервер
+func (collector *Agent) sendToServerBatch() {
+	//! приводим все метрики к нужным типам.
+	url := fmt.Sprintf("http://%s/updates/", collector.Conf.Address)
+
+	// Объединяем все метрики в одну пачку и шлем
+	allMetrics := collector.metrics.prepareGauges(collector.Conf.SecretKey)
+	counters := collector.metrics.prepareCounters(collector.Conf.SecretKey)
+	allMetrics = append(allMetrics, counters...)
+
+	SendMetricsBatch(allMetrics, url)
+}
+
 // Run запускает цикл по обработке таймеров и ожидания сигналов от ОС
 func (collector *Agent) Run() error {
 
@@ -74,6 +87,8 @@ func (collector *Agent) Run() error {
 
 		case <-tickerReport.C:
 			collector.sendToServer()
+			// Не указано в какой момент слать по новому протоколу. Потому шлем сразу и так и так
+			collector.sendToServerBatch()
 
 		case <-signalChanel:
 			//! Корректный выход без ошибок по указанным сигналам
@@ -168,4 +183,18 @@ func SendMetrics(dataSource []repository.Metrics, url string) {
 		}
 		resp.Body.Close()
 	}
+}
+
+// SendMetricsBatch отправляет все метрики одной пачкой на указанный url
+func SendMetricsBatch(dataSource []repository.Metrics, url string) {
+	buf, err := json.Marshal(dataSource)
+	if err != nil {
+		log.Fatal(err)
+	}
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(buf))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	resp.Body.Close()
 }

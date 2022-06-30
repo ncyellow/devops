@@ -157,6 +157,7 @@ func (h *Handler) UpdateJSON() http.HandlerFunc {
 		metric := repository.Metrics{}
 		err = json.Unmarshal(reqBody, &metric)
 
+		fmt.Printf("пришло - %#v\n", metric)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			rw.Write([]byte("invalid deserialization"))
@@ -171,6 +172,7 @@ func (h *Handler) UpdateJSON() http.HandlerFunc {
 			return
 		}
 
+		fmt.Printf("Обновление метрики")
 		err = h.repo.UpdateMetric(metric)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
@@ -201,6 +203,7 @@ func (h *Handler) UpdateListJSON() http.HandlerFunc {
 		var metrics []repository.Metrics
 		err = json.Unmarshal(reqBody, &metrics)
 
+		fmt.Printf("пришло - %#v\n", metrics)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			rw.Write([]byte("invalid deserialization"))
@@ -218,6 +221,7 @@ func (h *Handler) UpdateListJSON() http.HandlerFunc {
 			}
 		}
 
+		fmt.Printf("Обновление метрики")
 		for _, metric := range metrics {
 			err = h.repo.UpdateMetric(metric)
 			if err != nil {
@@ -287,6 +291,7 @@ func (h *Handler) Ping() http.HandlerFunc {
 		conn, err := pgx.Connect(context.Background(), h.conf.DatabaseConn)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
+			fmt.Println(err)
 			rw.Write([]byte("no connection"))
 			return
 		}

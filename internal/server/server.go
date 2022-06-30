@@ -1,6 +1,8 @@
 package server
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -10,7 +12,6 @@ import (
 	"github.com/ncyellow/devops/internal/server/handlers"
 	"github.com/ncyellow/devops/internal/server/repository"
 	"github.com/ncyellow/devops/internal/server/storage"
-	"github.com/rs/zerolog/log"
 )
 
 type Server struct {
@@ -20,9 +21,9 @@ type Server struct {
 func (s Server) RunServer() {
 	repo := repository.NewRepository(s.Conf)
 
-	saver, err := storage.CreateStorage(s.Conf, repo)
+	saver, err := storage.CreateSaver(s.Conf, repo)
 	if err != nil {
-		log.Warn().Msgf("Ошибка при создании хранилища данных - %#v\n", err)
+		fmt.Println("cant create NewSaver")
 	}
 	defer saver.Close()
 
@@ -35,7 +36,7 @@ func (s Server) RunServer() {
 
 	go func() {
 		if err := http.ListenAndServe(s.Conf.Address, r); err != nil && err != http.ErrServerClosed {
-			log.Fatal().Msgf("listen: %s\n", err)
+			log.Fatalf("listen: %s\n", err)
 		}
 	}()
 

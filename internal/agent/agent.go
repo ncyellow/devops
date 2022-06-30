@@ -8,6 +8,7 @@ import (
 	"github.com/ncyellow/devops/internal/hash"
 	"github.com/ncyellow/devops/internal/server/repository"
 
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -15,8 +16,6 @@ import (
 	"runtime"
 	"syscall"
 	"time"
-
-	"github.com/rs/zerolog/log"
 
 	"github.com/ncyellow/devops/internal/agent/config"
 )
@@ -175,11 +174,11 @@ func SendMetrics(dataSource []repository.Metrics, url string) {
 	for _, metric := range dataSource {
 		buf, err := json.Marshal(metric)
 		if err != nil {
-			log.Error().Err(err)
+			log.Fatal(err)
 		}
 		resp, err := http.Post(url, "application/json", bytes.NewBuffer(buf))
 		if err != nil {
-			log.Warn().Err(err)
+			log.Println(err)
 			continue
 		}
 		resp.Body.Close()
@@ -190,11 +189,11 @@ func SendMetrics(dataSource []repository.Metrics, url string) {
 func SendMetricsBatch(dataSource []repository.Metrics, url string) {
 	buf, err := json.Marshal(dataSource)
 	if err != nil {
-		log.Error().Err(err)
+		log.Fatal(err)
 	}
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(buf))
 	if err != nil {
-		log.Warn().Err(err)
+		log.Println(err)
 		return
 	}
 	resp.Body.Close()

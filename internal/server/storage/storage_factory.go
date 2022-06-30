@@ -5,11 +5,11 @@ import (
 	"github.com/ncyellow/devops/internal/server/repository"
 )
 
-func CreateStorage(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
+func CreateSaver(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
 	if conf.DatabaseConn != "" {
-		return NewPGStorage(conf, repo)
+		return NewSaver(conf, repo)
 	} else if conf.StoreFile != "" {
-		return NewFileStorage(conf, repo)
+		return NewMemorySaver(conf, repo)
 	}
 	return NewFakeStorage()
 }

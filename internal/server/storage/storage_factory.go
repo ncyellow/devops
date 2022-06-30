@@ -7,9 +7,9 @@ import (
 
 func CreateStorage(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
 	if conf.DatabaseConn != "" {
-		return NewSaver(conf, repo)
+		return NewPgStorage(conf, repo)
 	} else if conf.StoreFile != "" {
-		return NewMemorySaver(conf, repo)
+		return NewFileStorage(conf, repo)
 	}
 	return NewFakeStorage()
 }

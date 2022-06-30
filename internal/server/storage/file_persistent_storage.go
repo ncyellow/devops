@@ -15,7 +15,7 @@ type FileStorageSaver struct {
 	repo repository.Repository
 }
 
-func NewMemorySaver(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
+func NewFileStorage(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
 	saver := FileStorageSaver{conf: conf, repo: repo}
 	return &saver, nil
 }

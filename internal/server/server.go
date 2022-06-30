@@ -22,7 +22,7 @@ func (s Server) RunServer() {
 
 	saver, err := storage.CreateStorage(s.Conf, repo)
 	if err != nil {
-		log.Info().Msg("cant create NewSaver")
+		log.Info().Msg("cant create NewPgStorage")
 	}
 	defer saver.Close()
 

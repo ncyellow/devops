@@ -37,60 +37,23 @@ type PgPersistentStorage struct {
 
 func (p *PgPersistentStorage) init() {
 
-	// Это не clickhouse, где данные хорошо жмутся по столбцам и они не зависимы
-	// в postgresql таблица просто будет больше по размеру из-за пустых столбцов.
-
-	// Создаем нужные таблицы если их нет
-
-	rows, err := p.conn.Query(context.Background(), `
-	CREATE TABLE IF NOT EXISTS "counters"(
-	"@counters" bigserial,
-	"metric_name" text NOT NULL,
-	"value" bigint
-	)`)
-	rows.Close()
-
-	if err != nil {
-		log.Info().Msg("ошибка создания таблицы counters")
+	// Создаем нужные таблицы если их нет и индекс для уникальности имени метрики в таблице
+	queries := []string{
+		`CREATE TABLE IF NOT EXISTS "counters"("@counters" bigserial, "metric_name" text NOT NULL, "value" bigint)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS "icounters-metric_name" ON "counters" USING btree ("metric_name")`,
+		`CREATE TABLE IF NOT EXISTS "gauges"("@gauges" bigserial,"metric_name" text NOT NULL,"value" double precision)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS "igauges-metric_name" ON "gauges" USING btree ("metric_name")`,
 	}
 
-	rows, err = p.conn.Query(context.Background(), `
-	CREATE UNIQUE INDEX IF NOT EXISTS "icounters-metric_name"
-	ON "counters" USING btree
-	("metric_name")
-	`)
-	rows.Close()
-
-	if err != nil {
-		log.Info().Msg("ошибка создания уникального индекса по имени метрики counters")
+	for _, query := range queries {
+		_, err := p.conn.Exec(context.Background(), query)
+		if err != nil {
+			log.Info().Msgf("Не удалось выполнить запрос %s", query)
+		}
 	}
-
-	rows, err = p.conn.Query(context.Background(), `
-	CREATE TABLE IF NOT EXISTS "gauges"(
-	"@gauges" bigserial,
-	"metric_name" text NOT NULL,
-	"value" double precision
-	)`)
-	rows.Close()
-
-	if err != nil {
-		log.Info().Msg("ошибка создания таблицы counters")
-	}
-
-	rows, err = p.conn.Query(context.Background(), `
-	CREATE UNIQUE INDEX IF NOT EXISTS "igauges-metric_name"
-	ON "gauges" USING btree
-	("metric_name")
-	`)
-	rows.Close()
-
-	if err != nil {
-		log.Info().Msg("ошибка создания уникального индекса по имени метрики counters")
-	}
-
 }
 
-func NewSaver(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
+func NewPgStorage(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
 
 	conn, err := pgx.Connect(context.Background(), conf.DatabaseConn)
 	if err != nil {
@@ -166,66 +129,80 @@ func (p *PgPersistentStorage) Load() error {
 	return nil
 }
 
-// Save - так как конкретных требований нет и не нужно хранить историю метрик, просто удаляем все что было
-// и вставляем новые значения
 func (p *PgPersistentStorage) Save() error {
 
-	metrics := p.repo.ToMetrics()
+	conn, err := pgx.Connect(context.Background(), p.conf.DatabaseConn)
+	if err != nil {
+		return errors.New("cant connect to pgsql")
+	}
+	p.conn = conn
 
+	metrics := p.repo.ToMetrics()
 	if len(metrics) == 0 {
 		return nil
 	}
 
-	_, err := p.conn.Exec(context.Background(), `
-	TRUNCATE TABLE "counters"
-	`)
+	ctx := context.Background()
+	tx, err := p.conn.Begin(ctx)
 	if err != nil {
-		log.Info().Msg("have some error while truncate counters")
+		return err
 	}
 
-	_, err = p.conn.Exec(context.Background(), `
-	TRUNCATE TABLE "gauges"
+	desc, err := tx.Prepare(ctx, repository.Gauge, `
+	INSERT INTO "gauges"("metric_name", "value")
+	VALUES ($1, $2)
+	ON CONFLICT ("metric_name") 
+	DO 
+   	UPDATE SET value = EXCLUDED.value
 	`)
+
 	if err != nil {
-		log.Info().Msg("have some error while truncate gauges")
+		log.Info().Msgf("cant create prepare stmt - %s", desc.Name)
+		return err
 	}
 
-	counters := make([]repository.Metrics, 0)
-	gauges := make([]repository.Metrics, 0)
+	desc, err = tx.Prepare(ctx, repository.Counter, `
+	INSERT INTO "counters"("metric_name", "value")
+	VALUES ($1, $2)
+	ON CONFLICT ("metric_name") 
+	DO 
+   	UPDATE SET value = EXCLUDED.value
+	`)
+
+	if err != nil {
+		log.Info().Msgf("cant create prepare stmt - %s", desc.Name)
+		return err
+	}
 
 	for _, value := range metrics {
 		switch value.MType {
 		case repository.Gauge:
-			gauges = append(gauges, value)
+			tag, err := tx.Exec(ctx, repository.Gauge, value.ID, *value.Value)
+
+			if err != nil || !tag.Insert() {
+				log.Info().Msgf("insert gauges failed - %s", err.Error())
+				if err = tx.Rollback(ctx); err != nil {
+					log.Fatal().Msgf("update drivers: unable to rollback - %s", err.Error())
+				}
+				return err
+			}
 		case repository.Counter:
-			counters = append(counters, value)
+			tag, err := tx.Exec(ctx, repository.Counter, value.ID, *value.Delta)
+
+			if err != nil || !tag.Insert() {
+				log.Info().Msgf("insert counters failed - %s", err.Error())
+				if err = tx.Rollback(ctx); err != nil {
+					log.Fatal().Msgf("update drivers: unable to rollback - %s", err.Error())
+				}
+				return err
+			}
 		}
 	}
 
-	_, err = p.conn.CopyFrom(
-		context.Background(),
-		pgx.Identifier{"counters"},
-		[]string{"metric_name", "value"},
-		pgx.CopyFromSlice(len(counters), func(i int) ([]interface{}, error) {
-			return []interface{}{counters[i].ID, *counters[i].Delta}, nil
-		}),
-	)
-
-	if err != nil {
-		log.Info().Msg("have some error while truncate counters")
+	if err := tx.Commit(ctx); err != nil {
+		log.Fatal().Msgf("update drivers: unable to commit - %s", err.Error())
+		return err
 	}
 
-	_, err = p.conn.CopyFrom(
-		context.Background(),
-		pgx.Identifier{"gauges"},
-		[]string{"metric_name", "value"},
-		pgx.CopyFromSlice(len(gauges), func(i int) ([]interface{}, error) {
-			return []interface{}{gauges[i].ID, *gauges[i].Value}, nil
-		}),
-	)
-
-	if err != nil {
-		log.Info().Msg("have some error while truncate gauges")
-	}
 	return nil
 }

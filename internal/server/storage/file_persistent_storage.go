@@ -2,8 +2,9 @@ package storage
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/ncyellow/devops/internal/server/config"
 	"github.com/ncyellow/devops/internal/server/repository"
@@ -43,7 +44,7 @@ func SaveToFile(fileName string, repo repository.Repository) {
 
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
-		fmt.Printf("can't open file %s", fileName)
+		log.Info().Msgf("can't open file %s", fileName)
 		return
 	}
 	defer file.Close()
@@ -55,7 +56,7 @@ func SaveToFile(fileName string, repo repository.Repository) {
 func RestoreFromFile(fileName string, repo repository.Repository) {
 	file, err := os.OpenFile(fileName, os.O_RDONLY, 0777)
 	if err != nil {
-		fmt.Printf("can't open file %s", fileName)
+		log.Info().Msgf("can't open file %s", fileName)
 		return
 	}
 	defer file.Close()

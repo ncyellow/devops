@@ -2,8 +2,9 @@ package main
 
 import (
 	"flag"
-	"log"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/caarlos0/env/v6"
 	"github.com/ncyellow/devops/internal/agent"
@@ -25,9 +26,9 @@ func main() {
 	// Далее более приоритетные от ENV
 	err := env.Parse(&cfg)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
 	}
 
 	collector := agent.Agent{Conf: &cfg}
-	log.Fatal(collector.Run())
+	log.Fatal().Err(collector.Run())
 }

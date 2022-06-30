@@ -19,6 +19,7 @@ import (
 	"github.com/ncyellow/devops/internal/server/storage"
 )
 
+// Handler структура данных для работы с роутингом
 type Handler struct {
 	*chi.Mux
 	conf   *config.Config
@@ -49,6 +50,7 @@ func NewRouter(repo repository.Repository, conf *config.Config, pStore storage.P
 	return handler
 }
 
+// List возвращает html произвольного формата со всеми метриками
 func (h *Handler) List() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		rw.Header().Set("Content-Type", "text/html")
@@ -57,6 +59,7 @@ func (h *Handler) List() http.HandlerFunc {
 	}
 }
 
+// Value возвращает значение конкретной метрики
 func (h *Handler) Value() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		metricType := chi.URLParam(r, "metricType")
@@ -86,6 +89,7 @@ func (h *Handler) Value() http.HandlerFunc {
 	}
 }
 
+// Update обновляет значение конкретной метрики
 func (h *Handler) Update() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		//! Метод только post
@@ -140,6 +144,7 @@ func (h *Handler) Update() http.HandlerFunc {
 	}
 }
 
+// UpdateJSON возвращает значение конкретной метрики, но запрос приходит в json body
 func (h *Handler) UpdateJSON() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Content-Type") != "application/json" {
@@ -184,6 +189,7 @@ func (h *Handler) UpdateJSON() http.HandlerFunc {
 	}
 }
 
+// UpdateListJSON обновляет значение всех метрик переданных в json body
 func (h *Handler) UpdateListJSON() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Content-Type") != "application/json" {

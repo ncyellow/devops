@@ -9,7 +9,7 @@ import (
 	"github.com/ncyellow/devops/internal/server/config"
 )
 
-// MapRepository хранилище метрик на основе map, реализует интерфейс Repository
+// MapRepository структура данных для работы метриками на основе map, реализует интерфейс Repository
 type MapRepository struct {
 	conf     *config.Config
 	gauges   map[string]float64

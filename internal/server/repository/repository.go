@@ -11,6 +11,7 @@ const (
 	Counter = "counter"
 )
 
+// Metrics тип метрики для взаимодействия по сети и хранения на диске
 type Metrics struct {
 	// Имя метрики
 	ID string `json:"id"`
@@ -24,6 +25,7 @@ type Metrics struct {
 	Hash string `json:"hash,omitempty"`
 }
 
+// CalcHash вычисление хеша с подписью метрики
 func (m *Metrics) CalcHash(encodeFunc hash.EncodeFunc) string {
 	switch m.MType {
 	case Gauge:
@@ -35,7 +37,7 @@ func (m *Metrics) CalcHash(encodeFunc hash.EncodeFunc) string {
 	}
 }
 
-// Repository содержит API для работы с хранилищем метрик.
+// Repository содержит API для работы с метриками.
 type Repository interface {
 	// UpdateGauge обновить значение метрики типа gauge
 	UpdateGauge(name string, value float64) error

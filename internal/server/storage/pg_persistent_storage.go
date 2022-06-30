@@ -12,8 +12,8 @@ import (
 	"github.com/ncyellow/devops/internal/server/repository"
 )
 
-// RunSaver запускает сохранение данных repo по таймеру в файл
-func RunSaver(pStore PersistentStorage, interval time.Duration) {
+// RunStorageSaver запускает сохранение данных pStore по таймеру в файл
+func RunStorageSaver(pStore PersistentStorage, interval time.Duration) {
 	if interval == 0 {
 		//! Не нужно сбрасывать на диск если StoreInterval == 0
 		return
@@ -35,6 +35,18 @@ type PgPersistentStorage struct {
 	repo repository.Repository
 }
 
+func NewPgStorage(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
+
+	conn, err := pgx.Connect(context.Background(), conf.DatabaseConn)
+	if err != nil {
+		return nil, errors.New("cant connect to pgsql")
+	}
+
+	saver := PgPersistentStorage{conf: conf, conn: conn, repo: repo}
+	saver.init()
+	return &saver, nil
+}
+
 func (p *PgPersistentStorage) init() {
 
 	// Создаем нужные таблицы если их нет и индекс для уникальности имени метрики в таблице
@@ -53,19 +65,6 @@ func (p *PgPersistentStorage) init() {
 	}
 }
 
-func NewPgStorage(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
-
-	conn, err := pgx.Connect(context.Background(), conf.DatabaseConn)
-	if err != nil {
-		return nil, errors.New("cant connect to pgsql")
-	}
-
-	saver := PgPersistentStorage{conf: conf, conn: conn, repo: repo}
-	saver.init()
-	return &saver, nil
-
-}
-
 func (p *PgPersistentStorage) Close() {
 	p.Save()
 	p.conn.Close(context.Background())
@@ -75,9 +74,7 @@ func (p *PgPersistentStorage) Load() error {
 
 	metrics := make([]repository.Metrics, 0)
 
-	rows, err := p.conn.Query(context.Background(), `
-	select "metric_name", "value" FROM "counters"
-	`)
+	rows, err := p.conn.Query(context.Background(), `select "metric_name", "value" FROM "counters"`)
 
 	if err != nil {
 		return err
@@ -100,9 +97,7 @@ func (p *PgPersistentStorage) Load() error {
 
 	rows.Close()
 
-	rows, err = p.conn.Query(context.Background(), `
-	select "metric_name", "value" FROM "gauges"
-	`)
+	rows, err = p.conn.Query(context.Background(), `select "metric_name", "value" FROM "gauges"`)
 
 	if err != nil {
 		return err

@@ -10,6 +10,7 @@ import (
 	"github.com/ncyellow/devops/internal/server/repository"
 )
 
+// FileStorageSaver реализация хранилища на основе файла
 type FileStorageSaver struct {
 	conf *config.Config
 	repo repository.Repository

@@ -39,7 +39,7 @@ func (s Server) RunServer() {
 		}
 	}()
 
-	go storage.RunSaver(saver, s.Conf.StoreInterval)
+	go storage.RunStorageSaver(saver, s.Conf.StoreInterval)
 
 	<-done
 }

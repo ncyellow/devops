@@ -291,7 +291,6 @@ func (h *Handler) Ping() http.HandlerFunc {
 		conn, err := pgx.Connect(context.Background(), h.conf.DatabaseConn)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
-			fmt.Println(err)
 			rw.Write([]byte("no connection"))
 			return
 		}

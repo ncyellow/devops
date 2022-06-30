@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"log"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/caarlos0/env/v6"
 	"github.com/ncyellow/devops/internal/server"
@@ -30,10 +30,10 @@ func main() {
 	// Далее приоритетно аргументы из ENV
 	err := env.Parse(&cfg)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
 	}
 
-	fmt.Printf("Настройки запуска - %#v\n", cfg)
+	log.Info().Msgf("Настройки запуска - %#v\n", cfg)
 
 	server := server.Server{Conf: &cfg}
 	server.RunServer()

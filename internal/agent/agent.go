@@ -47,7 +47,7 @@ func (collector *Agent) sendToServer() {
 	SendMetrics(collector.metrics.prepareCounters(collector.Conf.SecretKey), url)
 }
 
-// sendToServer отправка метрик на сервер
+// sendToServerBatch отправка метрик пачкой на сервер
 func (collector *Agent) sendToServerBatch() {
 	//! приводим все метрики к нужным типам.
 	url := fmt.Sprintf("http://%s/updates/", collector.Conf.Address)

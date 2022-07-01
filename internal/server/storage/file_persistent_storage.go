@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"os"
@@ -36,7 +37,7 @@ func (m *FileStorageSaver) Load() error {
 	return nil
 }
 
-func (m *FileStorageSaver) Save() error {
+func (m *FileStorageSaver) Save(context.Context) error {
 	SaveToFile(m.conf.StoreFile, m.repo)
 	return nil
 }

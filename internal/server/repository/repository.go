@@ -57,8 +57,10 @@ type Repository interface {
 	// UpdateMetric обновляет данные в хранилище по значению Metrics
 	UpdateMetric(metrics Metrics) error
 
+	// FromMetrics загрузить данные в репозиторий из []Metrics
 	FromMetrics(metrics []Metrics)
 
+	// ToMetrics экспорт данных репозитория в []Metrics
 	ToMetrics() []Metrics
 
 	// Stringer Вывод в строку всех метрик хранилища

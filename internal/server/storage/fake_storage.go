@@ -1,6 +1,9 @@
 package storage
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
 // FakeStorage Пустая реализация хранилища - если нет ни файла ни базы,
 // то используем эту реализацию которая ничего не делает
@@ -18,7 +21,7 @@ func (m *FakeStorage) Load() error {
 	return nil
 }
 
-func (m *FakeStorage) Save() error {
+func (m *FakeStorage) Save(context.Context) error {
 	return nil
 }
 

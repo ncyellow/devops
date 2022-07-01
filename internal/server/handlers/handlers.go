@@ -180,7 +180,7 @@ func (h *Handler) UpdateJSON() http.HandlerFunc {
 			rw.Write([]byte("incorrect metric type"))
 			return
 		}
-		h.pStore.Save()
+		h.pStore.Save(r.Context())
 
 		rw.WriteHeader(http.StatusOK)
 		rw.Write([]byte("ok"))
@@ -232,7 +232,7 @@ func (h *Handler) UpdateListJSON() http.HandlerFunc {
 			}
 		}
 
-		err = h.pStore.Save()
+		err = h.pStore.Save(r.Context())
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			rw.Write([]byte("failed to save metrics"))

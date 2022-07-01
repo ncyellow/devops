@@ -25,7 +25,7 @@ func RunStorageSaver(pStore PersistentStorage, interval time.Duration) {
 	for {
 		<-tickerStore.C
 		//! сбрасываем на диск
-		pStore.Save()
+		pStore.Save(context.Background())
 	}
 }
 
@@ -71,7 +71,7 @@ func (p *PgPersistentStorage) init() {
 }
 
 func (p *PgPersistentStorage) Close() {
-	p.Save()
+	p.Save(context.Background())
 	p.pool.Close()
 }
 
@@ -137,14 +137,13 @@ func (p *PgPersistentStorage) Load() error {
 	return nil
 }
 
-func (p *PgPersistentStorage) Save() error {
+func (p *PgPersistentStorage) Save(ctx context.Context) error {
 
 	metrics := p.repo.ToMetrics()
 	if len(metrics) == 0 {
 		return nil
 	}
 
-	ctx := context.Background()
 	tx, err := p.pool.Begin(ctx)
 	if err != nil {
 		return err

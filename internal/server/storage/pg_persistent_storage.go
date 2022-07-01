@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rs/zerolog/log"
 
-	"github.com/jackc/pgx/v4"
 	"github.com/ncyellow/devops/internal/server/config"
 	"github.com/ncyellow/devops/internal/server/repository"
 )
@@ -29,20 +29,21 @@ func RunStorageSaver(pStore PersistentStorage, interval time.Duration) {
 	}
 }
 
+// PgPersistentStorage Использую связку pgx + pgxpool это дает нам thread safety pool коннектовв
 type PgPersistentStorage struct {
 	conf *config.Config
-	conn *pgx.Conn
+	pool *pgxpool.Pool
 	repo repository.Repository
 }
 
 func NewPgStorage(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
 
-	conn, err := pgx.Connect(context.Background(), conf.DatabaseConn)
+	pool, err := pgxpool.Connect(context.Background(), conf.DatabaseConn)
 	if err != nil {
 		return nil, errors.New("cant connect to pgsql")
 	}
 
-	saver := PgPersistentStorage{conf: conf, conn: conn, repo: repo}
+	saver := PgPersistentStorage{conf: conf, pool: pool, repo: repo}
 	saver.init()
 	return &saver, nil
 }
@@ -58,7 +59,7 @@ func (p *PgPersistentStorage) init() {
 	}
 
 	for _, query := range queries {
-		_, err := p.conn.Exec(context.Background(), query)
+		_, err := p.pool.Exec(context.Background(), query)
 		if err != nil {
 			log.Info().Msgf("Не удалось выполнить запрос %s", query)
 		}
@@ -67,14 +68,14 @@ func (p *PgPersistentStorage) init() {
 
 func (p *PgPersistentStorage) Close() {
 	p.Save()
-	p.conn.Close(context.Background())
+	p.pool.Close()
 }
 
 func (p *PgPersistentStorage) Load() error {
 
 	metrics := make([]repository.Metrics, 0)
 
-	rows, err := p.conn.Query(context.Background(), `select "metric_name", "value" FROM "counters"`)
+	rows, err := p.pool.Query(context.Background(), `select "metric_name", "value" FROM "counters"`)
 
 	if err != nil {
 		return err
@@ -97,7 +98,7 @@ func (p *PgPersistentStorage) Load() error {
 
 	rows.Close()
 
-	rows, err = p.conn.Query(context.Background(), `select "metric_name", "value" FROM "gauges"`)
+	rows, err = p.pool.Query(context.Background(), `select "metric_name", "value" FROM "gauges"`)
 
 	if err != nil {
 		return err
@@ -126,11 +127,13 @@ func (p *PgPersistentStorage) Load() error {
 
 func (p *PgPersistentStorage) Save() error {
 
-	conn, err := pgx.Connect(context.Background(), p.conf.DatabaseConn)
-	if err != nil {
-		return errors.New("cant connect to pgsql")
-	}
-	p.conn = conn
+	//conn, err := pgx.Connect(context.Background(), p.conf.DatabaseConn)
+	//pool, err := pgxpool.Connect(context.Background(), p.conf.DatabaseConn)
+
+	//if err != nil {
+	//	return errors.New("cant connect to pgsql")
+	//}
+	//p.conn = conn
 
 	metrics := p.repo.ToMetrics()
 	if len(metrics) == 0 {
@@ -138,7 +141,7 @@ func (p *PgPersistentStorage) Save() error {
 	}
 
 	ctx := context.Background()
-	tx, err := p.conn.Begin(ctx)
+	tx, err := p.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}

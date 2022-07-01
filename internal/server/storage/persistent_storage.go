@@ -4,5 +4,6 @@ package storage
 type PersistentStorage interface {
 	Save() error
 	Load() error
+	Ping() error
 	Close()
 }

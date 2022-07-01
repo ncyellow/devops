@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 
 	"github.com/rs/zerolog/log"
@@ -14,6 +15,10 @@ import (
 type FileStorageSaver struct {
 	conf *config.Config
 	repo repository.Repository
+}
+
+func (m *FileStorageSaver) Ping() error {
+	return errors.New("not supported operation")
 }
 
 func NewFileStorage(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {

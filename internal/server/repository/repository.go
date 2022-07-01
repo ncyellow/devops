@@ -38,6 +38,8 @@ func (m *Metrics) CalcHash(encodeFunc hash.EncodeFunc) string {
 }
 
 // Repository содержит API для работы с метриками.
+// Хранение разделено на две сущности. Кеш в RAM - Repository. А PersistentStorage
+// представляет сохранение в долговременное хранилище файл или бд
 type Repository interface {
 	// UpdateGauge обновить значение метрики типа gauge
 	UpdateGauge(name string, value float64) error

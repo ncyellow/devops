@@ -36,6 +36,10 @@ type PgPersistentStorage struct {
 	repo repository.Repository
 }
 
+func (p *PgPersistentStorage) Ping() error {
+	return p.pool.Ping(context.Background())
+}
+
 func NewPgStorage(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
 
 	pool, err := pgxpool.Connect(context.Background(), conf.DatabaseConn)
@@ -75,16 +79,18 @@ func (p *PgPersistentStorage) Load() error {
 
 	metrics := make([]repository.Metrics, 0)
 
-	rows, err := p.pool.Query(context.Background(), `select "metric_name", "value" FROM "counters"`)
+	//! Загружаем counter метрики
+	counterRows, err := p.pool.Query(context.Background(), `select "metric_name", "value" FROM "counters"`)
 
 	if err != nil {
 		return err
 	}
 
-	for rows.Next() {
+	defer counterRows.Close()
+	for counterRows.Next() {
 		var metricName string
 		var delta int64
-		err = rows.Scan(&metricName, &delta)
+		err = counterRows.Scan(&metricName, &delta)
 		if err != nil {
 			return err
 		}
@@ -96,18 +102,22 @@ func (p *PgPersistentStorage) Load() error {
 		})
 	}
 
-	rows.Close()
+	if counterRows.Err() != nil {
+		return err
+	}
 
-	rows, err = p.pool.Query(context.Background(), `select "metric_name", "value" FROM "gauges"`)
+	//! Загружаем gauge метрики
+	gaugeRows, err := p.pool.Query(context.Background(), `select "metric_name", "value" FROM "gauges"`)
 
 	if err != nil {
 		return err
 	}
+	defer gaugeRows.Close()
 
-	for rows.Next() {
+	for gaugeRows.Next() {
 		var metricName string
 		var value float64
-		err = rows.Scan(&metricName, &value)
+		err = gaugeRows.Scan(&metricName, &value)
 		if err != nil {
 			return err
 		}
@@ -119,21 +129,15 @@ func (p *PgPersistentStorage) Load() error {
 		})
 	}
 
-	rows.Close()
+	if gaugeRows.Err() != nil {
+		return err
+	}
 
 	p.repo.FromMetrics(metrics)
 	return nil
 }
 
 func (p *PgPersistentStorage) Save() error {
-
-	//conn, err := pgx.Connect(context.Background(), p.conf.DatabaseConn)
-	//pool, err := pgxpool.Connect(context.Background(), p.conf.DatabaseConn)
-
-	//if err != nil {
-	//	return errors.New("cant connect to pgsql")
-	//}
-	//p.conn = conn
 
 	metrics := p.repo.ToMetrics()
 	if len(metrics) == 0 {
@@ -172,6 +176,9 @@ func (p *PgPersistentStorage) Save() error {
 		return err
 	}
 
+	// Я бы, конечно, так не делал. Лучше уж делать truncate и через COPY писать все разом. Но раз упражнение
+	// требует prepare stmt + транзакцию то ок. Но мы так получим дикие проблемы с VACUUM. В таблице будет оч много
+	// мертвых кортежей
 	for _, value := range metrics {
 		switch value.MType {
 		case repository.Gauge:
@@ -201,6 +208,5 @@ func (p *PgPersistentStorage) Save() error {
 		log.Fatal().Msgf("update drivers: unable to commit - %s", err.Error())
 		return err
 	}
-
 	return nil
 }

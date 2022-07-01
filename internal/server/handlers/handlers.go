@@ -1,14 +1,12 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 
-	"github.com/jackc/pgx/v4"
 	"github.com/ncyellow/devops/internal/hash"
 	"github.com/ncyellow/devops/internal/server/config"
 	"github.com/ncyellow/devops/internal/server/repository"
@@ -290,22 +288,15 @@ func (h *Handler) ValueJSON() http.HandlerFunc {
 // Ping возвращает доступность базы данных
 func (h *Handler) Ping() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		conn, err := pgx.Connect(context.Background(), h.conf.DatabaseConn)
-		if err != nil {
-			rw.WriteHeader(http.StatusInternalServerError)
-			rw.Write([]byte("no connection"))
-			return
-		}
-		defer conn.Close(context.Background())
 
-		var result int
-		err = conn.QueryRow(r.Context(), "select 1").Scan(&result)
+		err := h.pStore.Ping()
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
-			rw.Write([]byte("query error"))
+			rw.Write([]byte("ping error"))
 			return
 		}
 		rw.WriteHeader(http.StatusOK)
 		rw.Write([]byte("ok"))
+
 	}
 }

@@ -190,6 +190,7 @@ func (h *Handler) UpdateJSON() http.HandlerFunc {
 // UpdateListJSON обновляет значение всех метрик переданных в json body
 func (h *Handler) UpdateListJSON() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
+
 		if r.Header.Get("Content-Type") != "application/json" {
 			rw.WriteHeader(http.StatusInternalServerError)
 			rw.Write([]byte("content type not support"))
@@ -230,7 +231,13 @@ func (h *Handler) UpdateListJSON() http.HandlerFunc {
 				return
 			}
 		}
-		h.pStore.Save()
+
+		err = h.pStore.Save()
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			rw.Write([]byte("failed to save metrics"))
+			return
+		}
 
 		rw.WriteHeader(http.StatusOK)
 		rw.Write([]byte("ok"))

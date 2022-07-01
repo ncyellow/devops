@@ -12,7 +12,7 @@ import (
 	"github.com/ncyellow/devops/internal/server/repository"
 )
 
-// RunStorageSaver запускает сохранение данных pStore по таймеру в файл
+// RunStorageSaver запускает сохранение данных pStore по таймеру
 func RunStorageSaver(pStore PersistentStorage, interval time.Duration) {
 	if interval == 0 {
 		//! Не нужно сбрасывать на диск если StoreInterval == 0

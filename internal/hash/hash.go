@@ -8,6 +8,7 @@ import (
 
 type EncodeFunc func(msg string) string
 
+// CreateEncodeFunc возвращает функцию, принимает текст и возвращает подписанный ключом хеш
 func CreateEncodeFunc(secretKey string) EncodeFunc {
 	return func(msg string) string {
 		if secretKey == "" {
@@ -21,10 +22,10 @@ func CreateEncodeFunc(secretKey string) EncodeFunc {
 	}
 }
 
+// CheckSign проверка подписи на корректность
 func CheckSign(secretKey string, msg string, correctResult string) bool {
 	if secretKey == "" {
 		return true
 	}
-
 	return msg == correctResult
 }

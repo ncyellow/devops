@@ -310,3 +310,62 @@ func (suite *HandlersSuite) TestUpdateValueJSONHandler() {
 	}
 	suite.runTableTests(testData)
 }
+
+// TestUpdateValuesJSONHandler тестируем /updates/
+func (suite *HandlersSuite) TestUpdateValuesJSONHandler() {
+	testData := []tests{
+		{
+			name:        "set gauge and counter with json",
+			request:     "/updates/",
+			requestType: "POST",
+			contentType: "application/json",
+			body: []byte(`[{"id":"jsonGauge","type":"gauge","value": 111},
+							      {"id":"jsonCounter","type":"counter","delta": 123}]`),
+			want: want{
+				statusCode: http.StatusOK,
+				body:       "ok",
+			},
+		},
+		{
+			name:        "test get gauge with json",
+			request:     "/value/",
+			requestType: "POST",
+			contentType: "application/json",
+			body:        []byte(`{"id":"jsonGauge","type":"gauge"}`),
+			want: want{
+				statusCode: http.StatusOK,
+				body:       `{"id":"jsonGauge","type":"gauge","value":111}`,
+			},
+		},
+		{
+			name:        "test get counter with json",
+			request:     "/value/",
+			requestType: "POST",
+			contentType: "application/json",
+			body:        []byte(`{"id":"jsonCounter","type":"counter"}`),
+			want: want{
+				statusCode: http.StatusOK,
+				body:       `{"id":"jsonCounter","type":"counter","delta":123}`,
+			},
+		},
+	}
+	suite.runTableTests(testData)
+}
+
+// TestUpdateValueJSONHandler тестируем UpdateJSONHandler ValueJSONHandler
+func (suite *HandlersSuite) TestPingHandler() {
+	testData := []tests{
+		{
+			name:        "check ping handler with fake storage",
+			request:     "/ping",
+			requestType: "GET",
+			contentType: "",
+			body:        nil,
+			want: want{
+				statusCode: http.StatusInternalServerError,
+				body:       "ping error",
+			},
+		},
+	}
+	suite.runTableTests(testData)
+}

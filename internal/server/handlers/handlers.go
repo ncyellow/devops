@@ -53,7 +53,7 @@ func (h *Handler) List() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		rw.Header().Set("Content-Type", "text/html")
 		rw.WriteHeader(http.StatusOK)
-		rw.Write([]byte(h.repo.String()))
+		rw.Write([]byte(repository.RenderHTML(h.repo.ToMetrics())))
 	}
 }
 

@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"errors"
 )
 
 // FakeStorage Пустая реализация хранилища - если нет ни файла ни базы,
@@ -11,7 +10,7 @@ type FakeStorage struct {
 }
 
 func (m *FakeStorage) Ping() error {
-	return errors.New("not supported operation")
+	return nil
 }
 
 func (m *FakeStorage) Close() {
@@ -25,6 +24,6 @@ func (m *FakeStorage) Save(context.Context) error {
 	return nil
 }
 
-func NewFakeStorage() (PersistentStorage, error) {
+func NewFakeStorage() (*FakeStorage, error) {
 	return &FakeStorage{}, nil
 }

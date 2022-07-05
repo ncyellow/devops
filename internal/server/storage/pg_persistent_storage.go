@@ -40,7 +40,7 @@ func (p *PgPersistentStorage) Ping() error {
 	return p.pool.Ping(context.Background())
 }
 
-func NewPgStorage(conf *config.Config, repo repository.Repository) (PersistentStorage, error) {
+func NewPgStorage(conf *config.Config, repo repository.Repository) (*PgPersistentStorage, error) {
 
 	pool, err := pgxpool.Connect(context.Background(), conf.DatabaseConn)
 	if err != nil {
@@ -65,7 +65,7 @@ func (p *PgPersistentStorage) init() {
 	for _, query := range queries {
 		_, err := p.pool.Exec(context.Background(), query)
 		if err != nil {
-			log.Info().Msgf("Не удалось выполнить запрос %s", query)
+			log.Info().Msgf("Не удалось выполнить запрос подготовки базы данных %s", query)
 		}
 	}
 }
@@ -186,7 +186,7 @@ func (p *PgPersistentStorage) Save(ctx context.Context) error {
 			if err != nil || !tag.Insert() {
 				log.Info().Msgf("insert gauges failed - %s", err.Error())
 				if err = tx.Rollback(ctx); err != nil {
-					log.Fatal().Msgf("update drivers: unable to rollback - %s", err.Error())
+					log.Info().Msgf("update drivers: unable to rollback - %s", err.Error())
 				}
 				return err
 			}
@@ -196,7 +196,7 @@ func (p *PgPersistentStorage) Save(ctx context.Context) error {
 			if err != nil || !tag.Insert() {
 				log.Info().Msgf("insert counters failed - %s", err.Error())
 				if err = tx.Rollback(ctx); err != nil {
-					log.Fatal().Msgf("update drivers: unable to rollback - %s", err.Error())
+					log.Info().Msgf("update drivers: unable to rollback - %s", err.Error())
 				}
 				return err
 			}
@@ -204,7 +204,7 @@ func (p *PgPersistentStorage) Save(ctx context.Context) error {
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		log.Fatal().Msgf("update drivers: unable to commit - %s", err.Error())
+		log.Info().Msgf("update drivers: unable to commit - %s", err.Error())
 		return err
 	}
 	return nil

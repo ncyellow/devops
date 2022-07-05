@@ -348,6 +348,18 @@ func (suite *HandlersSuite) TestUpdateValuesJSONHandler() {
 				body:       `{"id":"jsonCounter","type":"counter","delta":123}`,
 			},
 		},
+		{
+			name:        "/updates/ with invalid json",
+			request:     "/updates/",
+			requestType: "POST",
+			contentType: "application/json",
+			body: []byte(`[{"id":"jsonGauge","type":"gauge","value": 111,},
+						   {"id":"jsonCounter","type":"counter","delta": 123,}]`),
+			want: want{
+				statusCode: http.StatusInternalServerError,
+				body:       "invalid deserialization",
+			},
+		},
 	}
 	suite.runTableTests(testData)
 }
@@ -362,8 +374,8 @@ func (suite *HandlersSuite) TestPingHandler() {
 			contentType: "",
 			body:        nil,
 			want: want{
-				statusCode: http.StatusInternalServerError,
-				body:       "ping error",
+				statusCode: http.StatusOK,
+				body:       "ok",
 			},
 		},
 	}

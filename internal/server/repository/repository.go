@@ -62,7 +62,4 @@ type Repository interface {
 
 	// ToMetrics экспорт данных репозитория в []Metrics
 	ToMetrics() []Metrics
-
-	// Stringer Вывод в строку всех метрик хранилища
-	fmt.Stringer
 }

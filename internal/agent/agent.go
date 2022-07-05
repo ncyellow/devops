@@ -87,8 +87,6 @@ func (collector *Agent) Run() error {
 			collector.metrics.RandomValue = rand.Float64()
 
 		case <-tickerReport.C:
-			collector.sendToServer()
-			// Не указано в какой момент слать по новому протоколу. Потому шлем сразу и так и так
 			collector.sendToServerBatch()
 
 		case <-signalChanel:

@@ -40,6 +40,6 @@ func TestSaveRestoreFromFile(t *testing.T) {
 
 	// Так как перегружен Stringer, который возвращает нам html они должны быть одинаковые
 	// Второй вариант сравнить их json представление
-	assert.Equal(t, repo.String(), newRepo.String())
+	assert.Equal(t, repository.RenderHTML(repo.ToMetrics()), repository.RenderHTML(newRepo.ToMetrics()))
 
 }

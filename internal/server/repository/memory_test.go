@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/ncyellow/devops/internal/server/config"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -137,7 +136,7 @@ func TestMapRepositoryStringer(t *testing.T) {
 	</body>
 	</html>`
 
-	assert.Equal(t, correctHTML, repo.String())
+	assert.Equal(t, correctHTML, RenderHTML(repo.ToMetrics()))
 
 }
 

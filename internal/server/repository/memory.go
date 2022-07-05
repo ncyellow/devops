@@ -106,39 +106,6 @@ func (s *MapRepository) Metric(name string, mType string) (val Metrics, ok bool)
 	}
 }
 
-func (s *MapRepository) String() string {
-	htmlTmpl := `
-	<html>
-	<body>
-	<h1>All metrics</h1>
-	<h3>gauges</h3>
-	<ul>
-	  %s
-	</ul>
-	<h3>counters</h3>
-	<ul>
-	  %s
-	</ul>
-	</body>
-	</html>`
-
-	s.gaugesLock.RLock()
-	gaugesText := ""
-	for name, value := range s.gauges {
-		gaugesText += fmt.Sprintf("<li>%s : %.3f</li>\n", name, value)
-	}
-	s.gaugesLock.RUnlock()
-
-	s.countersLock.RLock()
-	countersText := ""
-	for name, value := range s.counters {
-		countersText += fmt.Sprintf("<li>%s : %d</li>\n", name, value)
-	}
-	s.countersLock.RUnlock()
-
-	return fmt.Sprintf(htmlTmpl, gaugesText, countersText)
-}
-
 // ToMetrics Конвертация данных MapRepository в []Metrics
 func (s *MapRepository) ToMetrics() []Metrics {
 	totalCount := len(s.gauges) + len(s.counters)

@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
+
+	"github.com/ncyellow/devops/internal/hash"
+	"github.com/ncyellow/devops/internal/server/repository"
+
 	"math/rand"
 	"net/http"
 	"os"
@@ -13,8 +16,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/ncyellow/devops/internal/agent/config"
-	"github.com/ncyellow/devops/internal/server/storage"
 )
 
 // RuntimeMetrics текущее состояние всех метрик обновляются с интервалом pollInterval
@@ -39,8 +43,21 @@ type Agent struct {
 func (collector *Agent) sendToServer() {
 	//! приводим все метрики к нужным типам.
 	url := fmt.Sprintf("http://%s/update/", collector.Conf.Address)
-	SendMetrics(collector.metrics.prepareGauges(), url)
-	SendMetrics(collector.metrics.prepareCounters(), url)
+	SendMetrics(collector.metrics.prepareGauges(collector.Conf.SecretKey), url)
+	SendMetrics(collector.metrics.prepareCounters(collector.Conf.SecretKey), url)
+}
+
+// sendToServerBatch отправка метрик пачкой на сервер
+func (collector *Agent) sendToServerBatch() {
+	//! приводим все метрики к нужным типам.
+	url := fmt.Sprintf("http://%s/updates/", collector.Conf.Address)
+
+	// Объединяем все метрики в одну пачку и шлем
+	allMetrics := collector.metrics.prepareGauges(collector.Conf.SecretKey)
+	counters := collector.metrics.prepareCounters(collector.Conf.SecretKey)
+	allMetrics = append(allMetrics, counters...)
+
+	SendMetricsBatch(allMetrics, url)
 }
 
 // Run запускает цикл по обработке таймеров и ожидания сигналов от ОС
@@ -70,7 +87,7 @@ func (collector *Agent) Run() error {
 			collector.metrics.RandomValue = rand.Float64()
 
 		case <-tickerReport.C:
-			collector.sendToServer()
+			collector.sendToServerBatch()
 
 		case <-signalChanel:
 			//! Корректный выход без ошибок по указанным сигналам
@@ -81,7 +98,7 @@ func (collector *Agent) Run() error {
 
 // prepareGauges - готовит map[string]float64 с метриками gauges для отправки на сервер,
 // так как класс метрики довольно жирный передает через указатель
-func (metrics *RuntimeMetrics) prepareGauges() []storage.Metrics {
+func (metrics *RuntimeMetrics) prepareGauges(secretKey string) []repository.Metrics {
 	gauges := map[string]float64{
 		"Alloc":         float64(metrics.Alloc),
 		"BuckHashSys":   float64(metrics.BuckHashSys),
@@ -112,16 +129,17 @@ func (metrics *RuntimeMetrics) prepareGauges() []storage.Metrics {
 		"TotalAlloc":    float64(metrics.TotalAlloc),
 		"RandomValue":   metrics.RandomValue,
 	}
-
-	result := make([]storage.Metrics, 0, len(gauges))
+	hashFunc := hash.CreateEncodeFunc(secretKey)
+	result := make([]repository.Metrics, 0, len(gauges))
 	for name, value := range gauges {
 		// Если пользоваться value, то все значения будут ссылаться на одну и ту же переменную - последнюю
 		gaugeValue := value
-		metric := storage.Metrics{
+		metric := repository.Metrics{
 			ID:    name,
-			MType: storage.Gauge,
+			MType: repository.Gauge,
 			Value: &gaugeValue,
 		}
+		metric.Hash = metric.CalcHash(hashFunc)
 		result = append(result, metric)
 	}
 	return result
@@ -129,37 +147,53 @@ func (metrics *RuntimeMetrics) prepareGauges() []storage.Metrics {
 
 // prepareCounters - готовит map[string]int64 с метриками counter для отправки на сервер,
 // пока такая метрика одна, но для обобщения сделан сразу метод
-func (metrics *RuntimeMetrics) prepareCounters() []storage.Metrics {
+func (metrics *RuntimeMetrics) prepareCounters(secretKey string) []repository.Metrics {
 	counters := map[string]int64{
 		"PollCount": metrics.PollCount,
 	}
 
-	result := make([]storage.Metrics, 0, len(counters))
+	hashFunc := hash.CreateEncodeFunc(secretKey)
+	result := make([]repository.Metrics, 0, len(counters))
 	for name, value := range counters {
 		// Если пользоваться value, то все значения будут ссылаться на одну и ту же переменную - последнюю
 		counterValue := value
-		metric := storage.Metrics{
+		metric := repository.Metrics{
 			ID:    name,
-			MType: storage.Counter,
+			MType: repository.Counter,
 			Delta: &counterValue,
 		}
+		metric.Hash = metric.CalcHash(hashFunc)
 		result = append(result, metric)
 	}
 	return result
 }
 
 // SendMetrics отправляет метрики на указанный url
-func SendMetrics(dataSource []storage.Metrics, url string) {
+func SendMetrics(dataSource []repository.Metrics, url string) {
 	for _, metric := range dataSource {
 		buf, err := json.Marshal(metric)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err)
 		}
 		resp, err := http.Post(url, "application/json", bytes.NewBuffer(buf))
 		if err != nil {
-			log.Println(err)
+			log.Info().Msgf("%s", err.Error())
 			continue
 		}
 		resp.Body.Close()
 	}
+}
+
+// SendMetricsBatch отправляет все метрики одной пачкой на указанный url
+func SendMetricsBatch(dataSource []repository.Metrics, url string) {
+	buf, err := json.Marshal(dataSource)
+	if err != nil {
+		log.Fatal().Err(err)
+	}
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(buf))
+	if err != nil {
+		log.Info().Msgf("%s", err.Error())
+		return
+	}
+	resp.Body.Close()
 }

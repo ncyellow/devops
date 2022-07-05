@@ -2,6 +2,10 @@ package storage
 
 import (
 	"encoding/json"
+
+	"github.com/ncyellow/devops/internal/server/config"
+	"github.com/ncyellow/devops/internal/server/repository"
+
 	"os"
 	"testing"
 
@@ -11,7 +15,7 @@ import (
 func TestSaveRestoreFromFile(t *testing.T) {
 
 	// Создаем репозиторий, который будем тестировать
-	repo := NewRepository()
+	repo := repository.NewRepository(&config.Config{})
 
 	data := []byte(`[{"id":"testGaugeMetric","type":"gauge","value":100},{"id":"testCounterMetric","type":"counter","delta":120}]`)
 	err := json.Unmarshal(data, &repo)
@@ -31,11 +35,11 @@ func TestSaveRestoreFromFile(t *testing.T) {
 	SaveToFile(fileName, repo)
 
 	// читаем из файла и сравниваем метрики
-	newRepo := NewRepository()
+	newRepo := repository.NewRepository(&config.Config{})
 	RestoreFromFile(fileName, newRepo)
 
 	// Так как перегружен Stringer, который возвращает нам html они должны быть одинаковые
 	// Второй вариант сравнить их json представление
-	assert.Equal(t, repo.String(), newRepo.String())
+	assert.Equal(t, repository.RenderHTML(repo.ToMetrics()), repository.RenderHTML(newRepo.ToMetrics()))
 
 }

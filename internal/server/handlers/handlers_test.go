@@ -8,6 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/ncyellow/devops/internal/server/config"
+	"github.com/ncyellow/devops/internal/server/repository"
+
 	"github.com/ncyellow/devops/internal/server/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,8 +38,12 @@ type HandlersSuite struct {
 // SetupSuite перед началом теста стартуем новый сервер httptest.Server делаем так, чтобы тестировать каждый
 // handler отдельно и не сливать все тесты в один
 func (suite *HandlersSuite) SetupTest() {
-	repo := storage.NewRepository()
-	r := NewRouter(repo)
+	conf := config.Config{}
+	repo := repository.NewRepository(&conf)
+	//! Это пустой вариант хранилища без состояние. Ошибок нет
+	pStore, _ := storage.NewFakeStorage()
+
+	r := NewRouter(repo, &conf, pStore)
 
 	suite.ts = httptest.NewServer(r)
 }
@@ -298,6 +305,77 @@ func (suite *HandlersSuite) TestUpdateValueJSONHandler() {
 			want: want{
 				statusCode: http.StatusOK,
 				body:       `{"id":"jsonCounter","type":"counter","delta":123}`,
+			},
+		},
+	}
+	suite.runTableTests(testData)
+}
+
+// TestUpdateValuesJSONHandler тестируем /updates/
+func (suite *HandlersSuite) TestUpdateValuesJSONHandler() {
+	testData := []tests{
+		{
+			name:        "set gauge and counter with json",
+			request:     "/updates/",
+			requestType: "POST",
+			contentType: "application/json",
+			body: []byte(`[{"id":"jsonGauge","type":"gauge","value": 111},
+							      {"id":"jsonCounter","type":"counter","delta": 123}]`),
+			want: want{
+				statusCode: http.StatusOK,
+				body:       "ok",
+			},
+		},
+		{
+			name:        "test get gauge with json",
+			request:     "/value/",
+			requestType: "POST",
+			contentType: "application/json",
+			body:        []byte(`{"id":"jsonGauge","type":"gauge"}`),
+			want: want{
+				statusCode: http.StatusOK,
+				body:       `{"id":"jsonGauge","type":"gauge","value":111}`,
+			},
+		},
+		{
+			name:        "test get counter with json",
+			request:     "/value/",
+			requestType: "POST",
+			contentType: "application/json",
+			body:        []byte(`{"id":"jsonCounter","type":"counter"}`),
+			want: want{
+				statusCode: http.StatusOK,
+				body:       `{"id":"jsonCounter","type":"counter","delta":123}`,
+			},
+		},
+		{
+			name:        "/updates/ with invalid json",
+			request:     "/updates/",
+			requestType: "POST",
+			contentType: "application/json",
+			body: []byte(`[{"id":"jsonGauge","type":"gauge","value": 111,},
+						   {"id":"jsonCounter","type":"counter","delta": 123,}]`),
+			want: want{
+				statusCode: http.StatusInternalServerError,
+				body:       "invalid deserialization",
+			},
+		},
+	}
+	suite.runTableTests(testData)
+}
+
+// TestUpdateValueJSONHandler тестируем UpdateJSONHandler ValueJSONHandler
+func (suite *HandlersSuite) TestPingHandler() {
+	testData := []tests{
+		{
+			name:        "check ping handler with fake storage",
+			request:     "/ping",
+			requestType: "GET",
+			contentType: "",
+			body:        nil,
+			want: want{
+				statusCode: http.StatusOK,
+				body:       "ok",
 			},
 		},
 	}

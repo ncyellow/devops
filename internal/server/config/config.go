@@ -8,4 +8,6 @@ type Config struct {
 	StoreInterval time.Duration `env:"STORE_INTERVAL"`
 	StoreFile     string        `env:"STORE_FILE"`
 	Restore       bool          `env:"RESTORE"`
+	SecretKey     string        `env:"KEY"`
+	DatabaseConn  string        `env:"DATABASE_DSN"`
 }

@@ -1,12 +1,17 @@
-package storage
+package repository
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/ncyellow/devops/internal/hash"
+)
 
 const (
 	Gauge   = "gauge"
 	Counter = "counter"
 )
 
+// Metrics тип метрики для взаимодействия по сети и хранения на диске
 type Metrics struct {
 	// Имя метрики
 	ID string `json:"id"`
@@ -16,9 +21,25 @@ type Metrics struct {
 	Delta *int64 `json:"delta,omitempty"`
 	// Значение метрики в случае передачи gauge
 	Value *float64 `json:"value,omitempty"`
+	// Значение хеш-функции
+	Hash string `json:"hash,omitempty"`
 }
 
-// Repository содержит API для работы с хранилищем метрик.
+// CalcHash вычисление хеша с подписью метрики
+func (m *Metrics) CalcHash(encodeFunc hash.EncodeFunc) string {
+	switch m.MType {
+	case Gauge:
+		return encodeFunc(fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value))
+	case Counter:
+		return encodeFunc(fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta))
+	default:
+		return ""
+	}
+}
+
+// Repository содержит API для работы с метриками.
+// Хранение разделено на две сущности. Кеш в RAM - Repository. А PersistentStorage
+// представляет сохранение в долговременное хранилище файл или бд
 type Repository interface {
 	// UpdateGauge обновить значение метрики типа gauge
 	UpdateGauge(name string, value float64) error
@@ -36,6 +57,9 @@ type Repository interface {
 	// UpdateMetric обновляет данные в хранилище по значению Metrics
 	UpdateMetric(metrics Metrics) error
 
-	// Stringer Вывод в строку всех метрик хранилища
-	fmt.Stringer
+	// FromMetrics загрузить данные в репозиторий из []Metrics
+	FromMetrics(metrics []Metrics)
+
+	// ToMetrics экспорт данных репозитория в []Metrics
+	ToMetrics() []Metrics
 }

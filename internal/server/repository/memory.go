@@ -1,13 +1,17 @@
-package storage
+package repository
 
 import (
 	"encoding/json"
 	"fmt"
 	"sync"
+
+	"github.com/ncyellow/devops/internal/hash"
+	"github.com/ncyellow/devops/internal/server/config"
 )
 
-// MapRepository хранилище метрик на основе map, реализует интерфейс Repository
+// MapRepository структура данных для работы метриками на основе map, реализует интерфейс Repository
 type MapRepository struct {
+	conf     *config.Config
 	gauges   map[string]float64
 	counters map[string]int64
 
@@ -17,8 +21,9 @@ type MapRepository struct {
 }
 
 // NewRepository конструктор
-func NewRepository() Repository {
+func NewRepository(conf *config.Config) Repository {
 	repo := MapRepository{}
+	repo.conf = conf
 	repo.gauges = make(map[string]float64)
 	repo.counters = make(map[string]int64)
 
@@ -68,98 +73,75 @@ func (s *MapRepository) Counter(name string) (val int64, ok bool) {
 }
 
 func (s *MapRepository) Metric(name string, mType string) (val Metrics, ok bool) {
+	encodeFunc := hash.CreateEncodeFunc(s.conf.SecretKey)
 	switch mType {
 	case Gauge:
 		val, ok := s.Gauge(name)
 		if !ok {
 			return Metrics{}, ok
 		}
-		return Metrics{
+		metric := Metrics{
 			ID:    name,
 			MType: mType,
 			Value: &val,
 			Delta: nil,
-		}, ok
+		}
+		metric.CalcHash(encodeFunc)
+		return metric, ok
 	case Counter:
 		val, ok := s.Counter(name)
 		if !ok {
 			return Metrics{}, ok
 		}
-		return Metrics{
+		metric := Metrics{
 			ID:    name,
 			MType: mType,
 			Value: nil,
 			Delta: &val,
-		}, ok
+		}
+		metric.CalcHash(encodeFunc)
+		return metric, ok
 	default:
 		return Metrics{}, false
 	}
 }
 
-func (s *MapRepository) String() string {
-	htmlTmpl := `
-	<html>
-	<body>
-	<h1>All metrics</h1>
-	<h3>gauges</h3>
-	<ul>
-	  %s
-	</ul>
-	<h3>counters</h3>
-	<ul>
-	  %s
-	</ul>
-	</body>
-	</html>`
-
-	s.gaugesLock.RLock()
-	gaugesText := ""
-	for name, value := range s.gauges {
-		gaugesText += fmt.Sprintf("<li>%s : %.3f</li>\n", name, value)
-	}
-	s.gaugesLock.RUnlock()
-
-	s.countersLock.RLock()
-	countersText := ""
-	for name, value := range s.counters {
-		countersText += fmt.Sprintf("<li>%s : %d</li>\n", name, value)
-	}
-	s.countersLock.RUnlock()
-
-	return fmt.Sprintf(htmlTmpl, gaugesText, countersText)
-}
-
-// toMetrics Конвертация данных MapRepository в []Metrics
-func (s *MapRepository) toMetrics() []Metrics {
+// ToMetrics Конвертация данных MapRepository в []Metrics
+func (s *MapRepository) ToMetrics() []Metrics {
 	totalCount := len(s.gauges) + len(s.counters)
 	metrics := make([]Metrics, 0, totalCount)
+	hashFunc := hash.CreateEncodeFunc(s.conf.SecretKey)
 
 	s.gaugesLock.RLock()
 	for name, value := range s.gauges {
 		gaugeValue := value
-		metrics = append(metrics, Metrics{
+		metric := Metrics{
 			ID:    name,
 			MType: Gauge,
 			Value: &gaugeValue,
-		})
+		}
+		metric.Hash = metric.CalcHash(hashFunc)
+		metrics = append(metrics, metric)
 	}
 	s.gaugesLock.RUnlock()
 
 	s.countersLock.RLock()
 	for name, value := range s.counters {
 		counterValue := value
-		metrics = append(metrics, Metrics{
+		metric := Metrics{
 			ID:    name,
 			MType: Counter,
 			Delta: &counterValue,
-		})
+		}
+		metric.Hash = metric.CalcHash(hashFunc)
+		metrics = append(metrics, metric)
 	}
 	s.countersLock.RUnlock()
 	return metrics
 }
 
-// fromMetrics - обновляет метрики в MapRepository по []Metrics
-func (s *MapRepository) fromMetrics(metrics []Metrics) {
+// FromMetrics - обновляет метрики в MapRepository по []Metrics
+func (s *MapRepository) FromMetrics(metrics []Metrics) {
 	for _, metric := range metrics {
 		switch metric.MType {
 		case Gauge:
@@ -176,7 +158,7 @@ func (s *MapRepository) fromMetrics(metrics []Metrics) {
 
 // MarshalJSON - реализация интерфейса Marshaler
 func (s *MapRepository) MarshalJSON() ([]byte, error) {
-	metrics := s.toMetrics()
+	metrics := s.ToMetrics()
 	jsMetrics, err := json.Marshal(metrics)
 	if err != nil {
 		return []byte{}, nil
@@ -191,6 +173,6 @@ func (s *MapRepository) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	s.fromMetrics(metrics)
+	s.FromMetrics(metrics)
 	return nil
 }

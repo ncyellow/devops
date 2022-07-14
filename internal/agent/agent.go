@@ -21,12 +21,15 @@ type Agent struct {
 func (collector *Agent) Run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	var metricChannel chan []repository.Metrics
+	metricChannel := make(chan []repository.Metrics, 1)
+
 	signalChanel := make(chan os.Signal, 1)
 	signal.Notify(signalChanel,
 		syscall.SIGINT,
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
+
+	defer close(signalChanel)
 
 	wg := sync.WaitGroup{}
 
@@ -37,6 +40,7 @@ func (collector *Agent) Run() error {
 
 	<-signalChanel
 	cancel()
+	wg.Wait()
 	fmt.Println("ok")
 	return nil
 }

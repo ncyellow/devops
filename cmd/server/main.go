@@ -34,7 +34,7 @@ func main() {
 		log.Fatal().Err(err)
 	}
 
-	log.Info().Msgf("Настройки запуска - %#v\n", cfg)
+	log.Info().Msgf("Настройки запуска сервера - %#v\n", cfg)
 
 	server := server.Server{Conf: &cfg}
 	server.RunServer()

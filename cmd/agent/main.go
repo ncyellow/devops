@@ -28,6 +28,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err)
 	}
+	log.Info().Msgf("Настройки запуска агента - %#v\n", cfg)
 
 	collector := agent.Agent{Conf: &cfg}
 	log.Fatal().Err(collector.Run())

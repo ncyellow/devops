@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -36,5 +37,6 @@ func (collector *Agent) Run() error {
 
 	<-signalChanel
 	cancel()
+	fmt.Println("ok")
 	return nil
 }

@@ -1,13 +1,16 @@
 package config
 
-import "time"
+import (
+	"time"
+
+	"github.com/ncyellow/devops/internal/config"
+)
 
 // Config конфигурационные параметры сервера.
 type Config struct {
-	Address       string        `env:"ADDRESS"`
+	config.GeneralConfig
 	StoreInterval time.Duration `env:"STORE_INTERVAL"`
 	StoreFile     string        `env:"STORE_FILE"`
 	Restore       bool          `env:"RESTORE"`
-	SecretKey     string        `env:"KEY"`
 	DatabaseConn  string        `env:"DATABASE_DSN"`
 }

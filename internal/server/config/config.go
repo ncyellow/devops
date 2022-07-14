@@ -3,12 +3,12 @@ package config
 import (
 	"time"
 
-	"github.com/ncyellow/devops/internal/config"
+	"github.com/ncyellow/devops/internal/gcfg"
 )
 
 // Config конфигурационные параметры сервера.
 type Config struct {
-	config.GeneralConfig
+	gcfg.GeneralConfig
 	StoreInterval time.Duration `env:"STORE_INTERVAL"`
 	StoreFile     string        `env:"STORE_FILE"`
 	Restore       bool          `env:"RESTORE"`

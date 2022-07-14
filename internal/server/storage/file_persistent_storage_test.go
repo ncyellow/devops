@@ -15,7 +15,8 @@ import (
 func TestSaveRestoreFromFile(t *testing.T) {
 
 	// Создаем репозиторий, который будем тестировать
-	repo := repository.NewRepository(&config.Config{})
+	cfg := config.Config{}
+	repo := repository.NewRepository(cfg.GeneralCfg())
 
 	data := []byte(`[{"id":"testGaugeMetric","type":"gauge","value":100},{"id":"testCounterMetric","type":"counter","delta":120}]`)
 	err := json.Unmarshal(data, &repo)
@@ -35,7 +36,7 @@ func TestSaveRestoreFromFile(t *testing.T) {
 	SaveToFile(fileName, repo)
 
 	// читаем из файла и сравниваем метрики
-	newRepo := repository.NewRepository(&config.Config{})
+	newRepo := repository.NewRepository(cfg.GeneralCfg())
 	RestoreFromFile(fileName, newRepo)
 
 	// Так как перегружен Stringer, который возвращает нам html они должны быть одинаковые

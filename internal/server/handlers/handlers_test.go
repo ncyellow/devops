@@ -39,7 +39,7 @@ type HandlersSuite struct {
 // handler отдельно и не сливать все тесты в один
 func (suite *HandlersSuite) SetupTest() {
 	conf := config.Config{}
-	repo := repository.NewRepository(&conf)
+	repo := repository.NewRepository(conf.GeneralCfg())
 	//! Это пустой вариант хранилища без состояние. Ошибок нет
 	pStore, _ := storage.NewFakeStorage()
 

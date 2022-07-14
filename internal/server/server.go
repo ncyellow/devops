@@ -18,7 +18,7 @@ type Server struct {
 }
 
 func (s Server) RunServer() {
-	repo := repository.NewRepository(s.Conf)
+	repo := repository.NewRepository(s.Conf.GeneralCfg())
 
 	saver, err := storage.CreateStorage(s.Conf, repo)
 	if err != nil {

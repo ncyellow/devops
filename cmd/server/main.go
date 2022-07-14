@@ -12,7 +12,6 @@ import (
 )
 
 func main() {
-
 	log.Info().Msg("Старт сервера")
 
 	var cfg config.Config

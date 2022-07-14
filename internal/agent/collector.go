@@ -12,6 +12,7 @@ import (
 	"github.com/ncyellow/devops/internal/gcfg"
 	"github.com/ncyellow/devops/internal/hash"
 	"github.com/ncyellow/devops/internal/server/repository"
+	"github.com/rs/zerolog/log"
 )
 
 // RuntimeMetrics текущее состояние всех метрик обновляются с интервалом pollInterval
@@ -24,6 +25,7 @@ type RuntimeMetrics struct {
 // prepareGauges - готовит map[string]float64 с метриками gauges для отправки на сервер,
 // так как класс метрики довольно жирный передает через указатель
 func (metrics *RuntimeMetrics) prepareGauges(secretKey string) []repository.Metrics {
+	log.Info().Msgf("Настройки запуска агента - %s\n", secretKey)
 	gauges := map[string]float64{
 		"Alloc":         float64(metrics.Alloc),
 		"BuckHashSys":   float64(metrics.BuckHashSys),
@@ -73,6 +75,7 @@ func (metrics *RuntimeMetrics) prepareGauges(secretKey string) []repository.Metr
 // prepareCounters - готовит map[string]int64 с метриками counter для отправки на сервер,
 // пока такая метрика одна, но для обобщения сделан сразу метод
 func (metrics *RuntimeMetrics) prepareCounters(secretKey string) []repository.Metrics {
+	log.Info().Msgf("Настройки запуска агента - %s\n", secretKey)
 	counters := map[string]int64{
 		"PollCount": metrics.PollCount,
 	}

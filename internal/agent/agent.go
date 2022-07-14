@@ -31,6 +31,7 @@ func (collector *Agent) Run() error {
 
 	wg.Add(1)
 	go RunCollector(ctx, collector.Conf, metricChannel, &wg)
+	wg.Add(1)
 	go RunSender(ctx, collector.Conf, metricChannel, &wg)
 
 	<-signalChanel

@@ -1,9 +1,14 @@
 package agent
 
 import (
+	"fmt"
 	"math/rand"
 	"runtime"
 	"time"
+
+	"github.com/rs/zerolog/log"
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 type MetricSource interface {
@@ -70,4 +75,45 @@ func (rs *RuntimeSource) Gauges() map[string]float64 {
 		"TotalAlloc":    float64(rs.metrics.TotalAlloc),
 		"RandomValue":   rs.metrics.RandomValue,
 	}
+}
+
+type PSUtilSource struct {
+	gauges map[string]float64
+}
+
+func NewPSUtilSource() *PSUtilSource {
+	source := PSUtilSource{}
+	source.gauges = make(map[string]float64)
+	return &source
+}
+
+func (ps *PSUtilSource) Update() {
+	//! Обновляем все стандартные метрики
+	//! Инкремент счетчика и новый рандом
+	v, err := mem.VirtualMemory()
+	if err != nil {
+		log.Info().Msg("get memory metrics failed")
+		return
+	}
+
+	ps.gauges["FreeMemory"] = float64(v.Free)
+	ps.gauges["TotalMemory"] = float64(v.Total)
+
+	percent, err := cpu.Percent(time.Second, true)
+	if err != nil {
+		log.Info().Msg("get cpu metrics failed")
+	}
+	for index, value := range percent {
+		cpuUtil := value
+		ps.gauges[fmt.Sprintf("CPUutilization%d", index)] = cpuUtil
+	}
+
+}
+
+func (ps *PSUtilSource) Counters() map[string]int64 {
+	return map[string]int64{}
+}
+
+func (ps *PSUtilSource) Gauges() map[string]float64 {
+	return ps.gauges
 }

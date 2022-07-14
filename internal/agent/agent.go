@@ -33,8 +33,20 @@ func (collector *Agent) Run() error {
 
 	wg := sync.WaitGroup{}
 
+	runtimeCol := &Collector{
+		Conf:   collector.Conf.GeneralCfg(),
+		Source: &RuntimeSource{},
+	}
 	wg.Add(1)
-	go RunCollector(ctx, collector.Conf, metricChannel, &wg)
+	go RunCollector(ctx, collector.Conf, runtimeCol, metricChannel, &wg)
+
+	psUtilCol := &Collector{
+		Conf:   collector.Conf.GeneralCfg(),
+		Source: NewPSUtilSource(),
+	}
+	wg.Add(1)
+	go RunCollector(ctx, collector.Conf, psUtilCol, metricChannel, &wg)
+
 	wg.Add(1)
 	go RunSender(ctx, collector.Conf, metricChannel, &wg)
 

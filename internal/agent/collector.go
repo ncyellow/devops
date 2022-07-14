@@ -32,24 +32,20 @@ func (c *Collector) ToMetrics() []repository.Metrics {
 }
 
 // RunCollector запускает цикл по обработке таймеров и ожидания сигналов от ОС
-func RunCollector(ctx context.Context, conf *config.Config, in chan<- []repository.Metrics, wg *sync.WaitGroup) {
+func RunCollector(ctx context.Context, conf *config.Config, collector *Collector, in chan<- []repository.Metrics, wg *sync.WaitGroup) {
 
 	tickerPoll := time.NewTicker(conf.PollInterval)
 	defer tickerPoll.Stop()
-
-	runtimeCol := Collector{
-		Conf:   conf.GeneralCfg(),
-		Source: &RuntimeSource{},
-	}
 
 	for {
 		select {
 		case <-tickerPoll.C:
 			//! Обновляем все стандартные метрики
 			//! Инкремент счетчика и новый рандом
-			runtimeCol.Update()
+			collector.Update()
 			fmt.Println("RunCollector")
-			in <- runtimeCol.ToMetrics()
+
+			in <- collector.ToMetrics()
 		case <-ctx.Done():
 			//! Корректный выход без ошибок по указанным сигналам
 			wg.Done()

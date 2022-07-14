@@ -3,8 +3,6 @@ package agent
 import (
 	"context"
 	"fmt"
-	"math/rand"
-	"runtime"
 	"sync"
 	"time"
 
@@ -15,47 +13,55 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// RuntimeMetrics текущее состояние всех метрик обновляются с интервалом pollInterval
-type RuntimeMetrics struct {
-	PollCount   int64
-	RandomValue float64
-	runtime.MemStats
+type Collector struct {
+	Conf   *gcfg.GeneralConfig
+	Source MetricSource
+}
+
+func (c *Collector) Update() {
+	//! Обновляем все стандартные метрики
+	//! Инкремент счетчика и новый рандом
+	c.Source.Update()
+}
+
+func (c *Collector) ToMetrics() []repository.Metrics {
+	allMetrics := prepareGauges(c.Source.Gauges(), c.Conf.SecretKey)
+	counters := prepareCounters(c.Source.Counters(), c.Conf.SecretKey)
+	allMetrics = append(allMetrics, counters...)
+	return allMetrics
+}
+
+// RunCollector запускает цикл по обработке таймеров и ожидания сигналов от ОС
+func RunCollector(ctx context.Context, conf *config.Config, in chan<- []repository.Metrics, wg *sync.WaitGroup) {
+
+	tickerPoll := time.NewTicker(conf.PollInterval)
+	defer tickerPoll.Stop()
+
+	runtimeCol := Collector{
+		Conf:   conf.GeneralCfg(),
+		Source: &RuntimeSource{},
+	}
+
+	for {
+		select {
+		case <-tickerPoll.C:
+			//! Обновляем все стандартные метрики
+			//! Инкремент счетчика и новый рандом
+			runtimeCol.Update()
+			fmt.Println("RunCollector")
+			in <- runtimeCol.ToMetrics()
+		case <-ctx.Done():
+			//! Корректный выход без ошибок по указанным сигналам
+			wg.Done()
+			return
+		}
+	}
 }
 
 // prepareGauges - готовит map[string]float64 с метриками gauges для отправки на сервер,
 // так как класс метрики довольно жирный передает через указатель
-func (metrics *RuntimeMetrics) prepareGauges(secretKey string) []repository.Metrics {
+func prepareGauges(gauges map[string]float64, secretKey string) []repository.Metrics {
 	log.Info().Msgf("Настройки запуска агента - %s\n", secretKey)
-	gauges := map[string]float64{
-		"Alloc":         float64(metrics.Alloc),
-		"BuckHashSys":   float64(metrics.BuckHashSys),
-		"Frees":         float64(metrics.Frees),
-		"GCCPUFraction": metrics.GCCPUFraction,
-		"GCSys":         float64(metrics.GCSys),
-		"HeapAlloc":     float64(metrics.HeapAlloc),
-		"HeapIdle":      float64(metrics.HeapIdle),
-		"HeapInuse":     float64(metrics.HeapInuse),
-		"HeapObjects":   float64(metrics.HeapObjects),
-		"HeapReleased":  float64(metrics.HeapReleased),
-		"HeapSys":       float64(metrics.HeapSys),
-		"LastGC":        float64(metrics.LastGC),
-		"Lookups":       float64(metrics.Lookups),
-		"MCacheInuse":   float64(metrics.MCacheInuse),
-		"MCacheSys":     float64(metrics.MCacheSys),
-		"MSpanInuse":    float64(metrics.MSpanInuse),
-		"MSpanSys":      float64(metrics.MSpanSys),
-		"Mallocs":       float64(metrics.Mallocs),
-		"NextGC":        float64(metrics.NextGC),
-		"NumForcedGC":   float64(metrics.NumForcedGC),
-		"NumGC":         float64(metrics.NumGC),
-		"OtherSys":      float64(metrics.OtherSys),
-		"PauseTotalNs":  float64(metrics.PauseTotalNs),
-		"StackInuse":    float64(metrics.StackInuse),
-		"StackSys":      float64(metrics.StackSys),
-		"Sys":           float64(metrics.Sys),
-		"TotalAlloc":    float64(metrics.TotalAlloc),
-		"RandomValue":   metrics.RandomValue,
-	}
 	hashFunc := hash.CreateEncodeFunc(secretKey)
 	result := make([]repository.Metrics, 0, len(gauges))
 	for name, value := range gauges {
@@ -74,11 +80,8 @@ func (metrics *RuntimeMetrics) prepareGauges(secretKey string) []repository.Metr
 
 // prepareCounters - готовит map[string]int64 с метриками counter для отправки на сервер,
 // пока такая метрика одна, но для обобщения сделан сразу метод
-func (metrics *RuntimeMetrics) prepareCounters(secretKey string) []repository.Metrics {
+func prepareCounters(counters map[string]int64, secretKey string) []repository.Metrics {
 	log.Info().Msgf("Настройки запуска агента - %s\n", secretKey)
-	counters := map[string]int64{
-		"PollCount": metrics.PollCount,
-	}
 
 	hashFunc := hash.CreateEncodeFunc(secretKey)
 	result := make([]repository.Metrics, 0, len(counters))
@@ -94,50 +97,4 @@ func (metrics *RuntimeMetrics) prepareCounters(secretKey string) []repository.Me
 		result = append(result, metric)
 	}
 	return result
-}
-
-type RuntimeCollector struct {
-	conf    gcfg.GeneralConfig
-	metrics RuntimeMetrics
-}
-
-func (rc *RuntimeCollector) Update() {
-	//! Обновляем все стандартные метрики
-	//! Инкремент счетчика и новый рандом
-	runtime.ReadMemStats(&rc.metrics.MemStats)
-	rc.metrics.PollCount += 1
-
-	rand.Seed(time.Now().UnixNano())
-	rc.metrics.RandomValue = rand.Float64()
-}
-
-func (rc *RuntimeCollector) ToMetrics() []repository.Metrics {
-	allMetrics := rc.metrics.prepareGauges(rc.conf.SecretKey)
-	counters := rc.metrics.prepareCounters(rc.conf.SecretKey)
-	allMetrics = append(allMetrics, counters...)
-	return allMetrics
-}
-
-// RunCollector запускает цикл по обработке таймеров и ожидания сигналов от ОС
-func RunCollector(ctx context.Context, conf *config.Config, in chan<- []repository.Metrics, wg *sync.WaitGroup) {
-
-	tickerPoll := time.NewTicker(conf.PollInterval)
-	defer tickerPoll.Stop()
-
-	runtimeCol := RuntimeCollector{}
-
-	for {
-		select {
-		case <-tickerPoll.C:
-			//! Обновляем все стандартные метрики
-			//! Инкремент счетчика и новый рандом
-			runtimeCol.Update()
-			fmt.Println("RunCollector")
-			in <- runtimeCol.ToMetrics()
-		case <-ctx.Done():
-			//! Корректный выход без ошибок по указанным сигналам
-			wg.Done()
-			return
-		}
-	}
 }

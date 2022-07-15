@@ -12,7 +12,6 @@ import (
 )
 
 func main() {
-	log.Info().Msg("Старт агента")
 	var cfg config.Config
 
 	flag.StringVar(&cfg.Address, "a", "127.0.0.1:8080", "address in the format host:port")

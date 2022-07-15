@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	"github.com/ncyellow/devops/internal/agent/config"
-	"github.com/ncyellow/devops/internal/server/repository"
+	"github.com/ncyellow/devops/internal/repository"
 )
 
 type Agent struct {

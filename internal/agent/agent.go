@@ -29,8 +29,6 @@ func (collector *Agent) Run() error {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 
-	defer close(signalChanel)
-
 	wg := sync.WaitGroup{}
 
 	runtimeCol := &Collector{
@@ -52,6 +50,7 @@ func (collector *Agent) Run() error {
 
 	<-signalChanel
 	cancel()
+	close(metricChannel)
 	wg.Wait()
 	fmt.Println("ok")
 	return nil

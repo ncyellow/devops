@@ -2,18 +2,20 @@ package agent
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/ncyellow/devops/internal/agent/config"
-	"github.com/ncyellow/devops/internal/gcfg"
+	"github.com/ncyellow/devops/internal/genconfig"
 	"github.com/ncyellow/devops/internal/hash"
 	"github.com/ncyellow/devops/internal/server/repository"
 )
 
+// Collector объект для работы с метриками.
+// 1. Хранит источник метрик, вызывает их обновление
+// 2. Готовит метрики в формат []repository.Metrics для отправки
 type Collector struct {
-	Conf   *gcfg.GeneralConfig
+	Conf   *genconfig.GeneralConfig
 	Source MetricSource
 }
 
@@ -30,7 +32,7 @@ func (c *Collector) ToMetrics() []repository.Metrics {
 	return allMetrics
 }
 
-// RunCollector запускает цикл по обработке таймеров и ожидания сигналов от ОС
+// RunCollector запускает цикл по опросу метрик и отправки их в канал in
 func RunCollector(ctx context.Context, conf *config.Config, collector *Collector, in chan<- []repository.Metrics, wg *sync.WaitGroup) {
 
 	tickerPoll := time.NewTicker(conf.PollInterval)
@@ -39,11 +41,8 @@ func RunCollector(ctx context.Context, conf *config.Config, collector *Collector
 	for {
 		select {
 		case <-tickerPoll.C:
-			//! Обновляем все стандартные метрики
-			//! Инкремент счетчика и новый рандом
+			// можно конечно объединить интерфейс в одну функцию, но и так ок
 			collector.Update()
-			fmt.Println("RunCollector")
-
 			in <- collector.ToMetrics()
 		case <-ctx.Done():
 			//! Корректный выход без ошибок по указанным сигналам
@@ -53,8 +52,7 @@ func RunCollector(ctx context.Context, conf *config.Config, collector *Collector
 	}
 }
 
-// prepareGauges - готовит map[string]float64 с метриками gauges для отправки на сервер,
-// так как класс метрики довольно жирный передает через указатель
+// prepareGauges - преобразование метрик Gauge в []repository.Metrics
 func prepareGauges(gauges map[string]float64, secretKey string) []repository.Metrics {
 	hashFunc := hash.CreateEncodeFunc(secretKey)
 	result := make([]repository.Metrics, 0, len(gauges))
@@ -72,8 +70,7 @@ func prepareGauges(gauges map[string]float64, secretKey string) []repository.Met
 	return result
 }
 
-// prepareCounters - готовит map[string]int64 с метриками counter для отправки на сервер,
-// пока такая метрика одна, но для обобщения сделан сразу метод
+// prepareCounters - преобразование метрик Counter в []repository.Metrics
 func prepareCounters(counters map[string]int64, secretKey string) []repository.Metrics {
 	hashFunc := hash.CreateEncodeFunc(secretKey)
 	result := make([]repository.Metrics, 0, len(counters))

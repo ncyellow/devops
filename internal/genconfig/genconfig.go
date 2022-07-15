@@ -1,4 +1,4 @@
-package gcfg
+package genconfig
 
 // GeneralConfig содержит общие параметры по настройке агента и сервера
 type GeneralConfig struct {

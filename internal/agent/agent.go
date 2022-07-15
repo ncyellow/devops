@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -13,16 +12,19 @@ import (
 )
 
 type Agent struct {
-	Conf    *config.Config
-	metrics RuntimeMetrics
+	Conf *config.Config
 }
 
 // Run запускает цикл по обработке таймеров и ожидания сигналов от ОС
 func (collector *Agent) Run() error {
+
+	// Контекст для корректно завершения все горутин
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// Канал по которому метрики откуда sender модуль будет получать метрики и отправлять на сервер
 	metricChannel := make(chan []repository.Metrics, 1)
 
+	// Канал обработки сигналов ОС
 	signalChanel := make(chan os.Signal, 1)
 	signal.Notify(signalChanel,
 		syscall.SIGINT,
@@ -31,6 +33,7 @@ func (collector *Agent) Run() error {
 
 	wg := sync.WaitGroup{}
 
+	// Коллектор по сбору runtime метрик
 	runtimeCol := &Collector{
 		Conf:   collector.Conf.GeneralCfg(),
 		Source: &RuntimeSource{},
@@ -38,6 +41,7 @@ func (collector *Agent) Run() error {
 	wg.Add(1)
 	go RunCollector(ctx, collector.Conf, runtimeCol, metricChannel, &wg)
 
+	// Коллектор по сбору psutil метрик
 	psUtilCol := &Collector{
 		Conf:   collector.Conf.GeneralCfg(),
 		Source: NewPSUtilSource(),
@@ -52,6 +56,5 @@ func (collector *Agent) Run() error {
 	cancel()
 	wg.Wait()
 	close(metricChannel)
-	fmt.Println("ok")
 	return nil
 }

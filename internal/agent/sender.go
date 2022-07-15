@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// RunSender запускает цикл по обработке таймеров и ожидания сигналов от ОС
+// RunSender запускает цикл по обработке таймера отправки метрик из канала out на сервер
 func RunSender(ctx context.Context, conf *config.Config, out <-chan []repository.Metrics, wg *sync.WaitGroup) {
 
 	repo := repository.NewRepository(conf.GeneralCfg())
@@ -27,12 +27,11 @@ func RunSender(ctx context.Context, conf *config.Config, out <-chan []repository
 	for {
 		select {
 		case <-tickerReport.C:
+			// Две отправки для совместимости со старой версией, по старому протоколу
 			SendMetrics(repo.ToMetrics(), urlSingle)
+			// По новой через Batch
 			SendMetricsBatch(repo.ToMetrics(), url)
 		case metrics := <-out:
-			//! Корректный выход без ошибок по указанным сигналам
-			// обработка входящих метрик
-			fmt.Println("got metrics to sender")
 			for _, metric := range metrics {
 				repo.UpdateMetric(metric)
 			}
@@ -45,6 +44,7 @@ func RunSender(ctx context.Context, conf *config.Config, out <-chan []repository
 
 // SendMetricsBatch отправляет все метрики одной пачкой на указанный url
 func SendMetricsBatch(dataSource []repository.Metrics, url string) {
+	// Если метрик данных нет сразу на выход
 	if len(dataSource) == 0 {
 		return
 	}

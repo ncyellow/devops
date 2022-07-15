@@ -52,9 +52,12 @@ func (collector *Agent) Run() error {
 	wg.Add(1)
 	go RunSender(ctx, collector.Conf, metricChannel, &wg)
 
+	go func() {
+		wg.Wait()
+		close(metricChannel)
+	}()
+
 	<-signalChanel
 	cancel()
-	close(metricChannel)
-	wg.Wait()
 	return nil
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/ncyellow/devops/internal/agent/config"
 	"github.com/ncyellow/devops/internal/genconfig"
 	"github.com/ncyellow/devops/internal/hash"
-	"github.com/ncyellow/devops/internal/repository"
+	"github.com/ncyellow/devops/internal/server/repository"
 )
 
 // Collector объект для работы с метриками.

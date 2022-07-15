@@ -12,6 +12,8 @@ import (
 )
 
 func main() {
+	log.Info().Msg("Старт сервера")
+
 	var cfg config.Config
 
 	flag.StringVar(&cfg.Address, "a", "localhost:8080", "address in the format host:port")
@@ -20,6 +22,9 @@ func main() {
 	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "filename that used for save metrics state")
 	flag.StringVar(&cfg.SecretKey, "k", "", "key for hash metrics")
 	flag.StringVar(&cfg.DatabaseConn, "d", "", "connection string to postgresql")
+
+	//flag.DurationVar(&cfg.StoreInterval, "i", time.Second*3, "store interval in the format 300s")
+	//flag.StringVar(&cfg.DatabaseConn, "d", "user=postgres password=12345 host=localhost port=5433 dbname=gopractice", "connection string to postgresql")
 
 	// Сначала парсим командную строку
 	flag.Parse()

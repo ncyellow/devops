@@ -7,8 +7,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/ncyellow/devops/internal/repository"
 	"github.com/ncyellow/devops/internal/server/config"
+	"github.com/ncyellow/devops/internal/server/repository"
 )
 
 // FileStorageSaver реализация хранилища на основе файла

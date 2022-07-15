@@ -8,8 +8,8 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rs/zerolog/log"
 
-	"github.com/ncyellow/devops/internal/repository"
 	"github.com/ncyellow/devops/internal/server/config"
+	"github.com/ncyellow/devops/internal/server/repository"
 )
 
 // RunStorageSaver запускает сохранение данных pStore по таймеру

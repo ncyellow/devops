@@ -12,8 +12,6 @@ import (
 )
 
 func main() {
-	log.Info().Msg("Старт сервера")
-
 	var cfg config.Config
 
 	flag.StringVar(&cfg.Address, "a", "localhost:8080", "address in the format host:port")

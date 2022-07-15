@@ -50,8 +50,8 @@ func (collector *Agent) Run() error {
 
 	<-signalChanel
 	cancel()
-	close(metricChannel)
 	wg.Wait()
+	close(metricChannel)
 	fmt.Println("ok")
 	return nil
 }

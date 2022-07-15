@@ -77,6 +77,7 @@ func (rs *RuntimeSource) Gauges() map[string]float64 {
 	}
 }
 
+// PSUtilSource имплементация источника данных на основе gopsutil
 type PSUtilSource struct {
 	gauges map[string]float64
 }

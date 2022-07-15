@@ -8,8 +8,8 @@ import (
 	"strconv"
 
 	"github.com/ncyellow/devops/internal/hash"
+	"github.com/ncyellow/devops/internal/repository"
 	"github.com/ncyellow/devops/internal/server/config"
-	"github.com/ncyellow/devops/internal/server/repository"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

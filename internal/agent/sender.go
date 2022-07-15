@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/ncyellow/devops/internal/agent/config"
-	"github.com/ncyellow/devops/internal/server/repository"
+	"github.com/ncyellow/devops/internal/repository"
 	"github.com/rs/zerolog/log"
 )
 

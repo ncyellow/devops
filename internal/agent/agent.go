@@ -54,7 +54,7 @@ func (collector *Agent) Run() error {
 
 	<-signalChanel
 	cancel()
-	wg.Wait()
 	close(metricChannel)
+	wg.Wait()
 	return nil
 }

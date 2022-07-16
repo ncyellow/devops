@@ -5,7 +5,7 @@ import (
 
 	"testing"
 
-	"github.com/ncyellow/devops/internal/server/config"
+	"github.com/ncyellow/devops/internal/genconfig"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,7 +13,7 @@ import (
 func TestMapRepositoryGauge(t *testing.T) {
 	t.Parallel()
 
-	repo := NewRepository(&config.Config{})
+	repo := NewRepository(&genconfig.GeneralConfig{})
 
 	// обновление
 	err := repo.UpdateGauge("testGauge", 100.0)
@@ -42,7 +42,7 @@ func TestMapRepositoryGauge(t *testing.T) {
 func TestMapRepositoryCounter(t *testing.T) {
 	t.Parallel()
 
-	repo := NewRepository(&config.Config{})
+	repo := NewRepository(&genconfig.GeneralConfig{})
 
 	// обновление
 	err := repo.UpdateCounter("testCounter", 100)
@@ -71,7 +71,7 @@ func TestMapRepositoryCounter(t *testing.T) {
 func TestMapRepositoryMetricsCounter(t *testing.T) {
 	t.Parallel()
 
-	repo := NewRepository(&config.Config{})
+	repo := NewRepository(&genconfig.GeneralConfig{})
 
 	var updateValue int64 = 100
 
@@ -110,7 +110,7 @@ func TestMapRepositoryMetricsCounter(t *testing.T) {
 func TestMapRepositoryStringer(t *testing.T) {
 	t.Parallel()
 
-	repo := NewRepository(&config.Config{})
+	repo := NewRepository(&genconfig.GeneralConfig{})
 
 	// обновление
 	err := repo.UpdateGauge("testGauge", 100.0)
@@ -144,7 +144,7 @@ func TestMapRepositoryStringer(t *testing.T) {
 func TestMapRepositoryMetricsGauge(t *testing.T) {
 	t.Parallel()
 
-	repo := NewRepository(&config.Config{})
+	repo := NewRepository(&genconfig.GeneralConfig{})
 
 	// обновление
 	var updateValue float64 = 100
@@ -205,7 +205,7 @@ func TestMapRepositoryMetricsGauge(t *testing.T) {
 func TestMarshalJSON(t *testing.T) {
 	t.Parallel()
 
-	repo := NewRepository(&config.Config{})
+	repo := NewRepository(&genconfig.GeneralConfig{})
 
 	err := repo.UpdateGauge("testGaugeMetric", 100)
 	assert.NoError(t, err)
@@ -222,7 +222,8 @@ func TestMarshalJSON(t *testing.T) {
 func TestUnmarshalJSON(t *testing.T) {
 	t.Parallel()
 
-	repo := NewRepository(&config.Config{})
+	repo := NewRepository(&genconfig.GeneralConfig{})
+
 	data := []byte(`[{"id":"testGaugeMetric","type":"gauge","value":100},{"id":"testCounterMetric","type":"counter","delta":120}]`)
 
 	err := json.Unmarshal(data, &repo)
@@ -236,7 +237,7 @@ func TestUnmarshalJSON(t *testing.T) {
 	assert.Equal(t, true, ok)
 	assert.Equal(t, int64(120), delta)
 
-	brokenRepo := NewRepository(&config.Config{})
+	brokenRepo := NewRepository(&genconfig.GeneralConfig{})
 	brokenData := []byte(`{"name": "Joe", "age": null, }`)
 
 	err = json.Unmarshal(brokenData, &brokenRepo)

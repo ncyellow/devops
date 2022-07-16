@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ncyellow/devops/internal/genconfig"
 	"github.com/ncyellow/devops/internal/hash"
-	"github.com/ncyellow/devops/internal/server/config"
 )
 
 // MapRepository структура данных для работы метриками на основе map, реализует интерфейс Repository
 type MapRepository struct {
-	conf     *config.Config
+	conf     *genconfig.GeneralConfig
 	gauges   map[string]float64
 	counters map[string]int64
 
@@ -21,7 +21,7 @@ type MapRepository struct {
 }
 
 // NewRepository конструктор
-func NewRepository(conf *config.Config) Repository {
+func NewRepository(conf *genconfig.GeneralConfig) Repository {
 	repo := MapRepository{}
 	repo.conf = conf
 	repo.gauges = make(map[string]float64)

@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/ncyellow/devops/internal/repository"
 	"github.com/ncyellow/devops/internal/server/config"
 	"github.com/ncyellow/devops/internal/server/handlers"
-	"github.com/ncyellow/devops/internal/server/repository"
 	"github.com/ncyellow/devops/internal/server/storage"
 	"github.com/rs/zerolog/log"
 )
@@ -18,7 +18,7 @@ type Server struct {
 }
 
 func (s Server) RunServer() {
-	repo := repository.NewRepository(s.Conf)
+	repo := repository.NewRepository(s.Conf.GeneralCfg())
 
 	saver, err := storage.CreateStorage(s.Conf, repo)
 	if err != nil {

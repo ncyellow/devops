@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	log.Info().Msg("Старт сервера")
 
 	var cfg config.Config
 
@@ -22,9 +23,6 @@ func main() {
 	flag.StringVar(&cfg.SecretKey, "k", "", "key for hash metrics")
 	flag.StringVar(&cfg.DatabaseConn, "d", "", "connection string to postgresql")
 
-	//flag.DurationVar(&cfg.StoreInterval, "i", time.Second*3, "store interval in the format 300s")
-	//flag.StringVar(&cfg.DatabaseConn, "d", "user=postgres password=12345 host=localhost port=5433 dbname=gopractice", "connection string to postgresql")
-
 	// Сначала парсим командную строку
 	flag.Parse()
 
@@ -34,7 +32,7 @@ func main() {
 		log.Fatal().Err(err)
 	}
 
-	log.Info().Msgf("Настройки запуска - %#v\n", cfg)
+	log.Info().Msgf("Настройки запуска сервера - %#v\n", cfg)
 
 	server := server.Server{Conf: &cfg}
 	server.RunServer()

@@ -30,6 +30,7 @@ func NewRouter(repo repository.Repository, conf *config.Config, pStore storage.P
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(middlewares.EncoderGZIP)
+	r.Mount("/debug", middleware.Profiler())
 
 	handler := &Handler{
 		Mux:    r,

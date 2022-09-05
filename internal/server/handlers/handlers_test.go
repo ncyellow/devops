@@ -180,7 +180,7 @@ func (suite *HandlersSuite) TestValueHandler() {
 			body:        nil,
 			want: want{
 				statusCode: http.StatusNotFound,
-				body:       "",
+				body:       "not found",
 			},
 		},
 		{
@@ -202,7 +202,7 @@ func (suite *HandlersSuite) TestValueHandler() {
 			body:        nil,
 			want: want{
 				statusCode: http.StatusNotFound,
-				body:       "",
+				body:       "not found",
 			},
 		},
 	}

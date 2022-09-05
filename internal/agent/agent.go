@@ -11,6 +11,7 @@ import (
 	"github.com/ncyellow/devops/internal/repository"
 )
 
+// Agent структура для работы агента
 type Agent struct {
 	Conf *config.Config
 }

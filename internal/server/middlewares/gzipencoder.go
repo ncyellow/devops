@@ -1,3 +1,4 @@
+// Package middlewares содержит кастомные middleware приложения
 package middlewares
 
 import (
@@ -7,6 +8,7 @@ import (
 	"strings"
 )
 
+// gzipWriter структура middleware, для поддержки gzip
 type gzipWriter struct {
 	http.ResponseWriter
 	Writer io.Writer

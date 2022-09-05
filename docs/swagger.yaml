@@ -1,0 +1,237 @@
+definitions:
+  handlers.Metrics:
+    properties:
+      delta:
+        description: Значение метрики в случае передачи counter
+        type: integer
+      hash:
+        description: Значение хеш-функции
+        type: string
+      id:
+        description: Имя метрики
+        type: string
+      type:
+        description: Параметр, принимающий значение gauge или counter
+        type: string
+      value:
+        description: Значение метрики в случае передачи gauge
+        type: number
+    type: object
+info:
+  contact:
+    email: ncyellow@yandex.ru
+  description: Сервис сбора метрик типов Counter, Gauge
+  title: DevOPS API
+  version: "1.0"
+paths:
+  /:
+    get:
+      description: Просто генерим рандомного формата html с метриками
+      operationId: infoList
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: html с метриками
+          schema:
+            type: string
+      summary: Возвращает html со списком метрик
+      tags:
+      - Info
+  /ping:
+    get:
+      operationId: infoPing
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "500":
+          description: ping error
+          schema:
+            type: string
+      summary: Запрос состояния доступности базы данных
+      tags:
+      - Info
+  /update/:
+    post:
+      consumes:
+      - application/json
+      description: важный момент что запрос на состояние метрики должен быть подписан
+        корректно иначе, отлуп
+      operationId: storageUpdateJSON
+      parameters:
+      - description: Metric object
+        in: body
+        name: metric_data
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.Metrics'
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: incorrect metric sign
+          schema:
+            type: string
+        "500":
+          description: incorrect metric type, content type not support, invalid deserialization
+          schema:
+            type: string
+      summary: обновляем состояние метрики но уже через json body
+      tags:
+      - Storage
+  /update/{metricType}/{metricName}/{metricValue}:
+    post:
+      description: на вход rest url на выход plain ок если все хорошо
+      operationId: storageValue
+      parameters:
+      - description: Metric type
+        in: path
+        name: metricType
+        required: true
+        type: string
+      - description: Metric name
+        in: path
+        name: metricName
+        required: true
+        type: string
+      - description: Metric value
+        in: path
+        name: metricValue
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: incorrect metric value
+          schema:
+            type: string
+        "500":
+          description: incorrect metric name
+          schema:
+            type: string
+        "501":
+          description: incorrect metric type
+          schema:
+            type: string
+      summary: обновляем состояние метрики через rest api
+      tags:
+      - Storage
+  /updates/:
+    post:
+      consumes:
+      - application/json
+      description: обязательность подписи как и UpdateJSON остается
+      operationId: storageUpdateListJSON
+      parameters:
+      - description: Metrics list object
+        in: body
+        name: metric_data
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/handlers.Metrics'
+          type: array
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: incorrect metric sign
+          schema:
+            type: string
+        "500":
+          description: incorrect metric type, content type not support, invalid deserialization
+          schema:
+            type: string
+      summary: обновляем состояние всех метрик переданных  в json
+      tags:
+      - Storage
+  /value/:
+    post:
+      consumes:
+      - application/json
+      description: На вход принимаем json с параметрами интересующей метрики в ответ
+        шлем json с ее состоянием + подпись
+      operationId: infoValueJSON
+      parameters:
+      - description: Metric name
+        in: body
+        name: ID
+        required: true
+        schema:
+          type: string
+      - description: Metric type
+        in: body
+        name: MType
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.Metrics'
+        "404":
+          description: not found
+          schema:
+            type: string
+        "500":
+          description: content type not support, Read data problem, invalid deserialization
+          schema:
+            type: string
+      summary: Возвращает состояние метрики в формате json
+      tags:
+      - Info
+  /value/{metricType}/{metricName}:
+    get:
+      description: на вход rest url на выход plain значение
+      operationId: infoValue
+      parameters:
+      - description: Metric type
+        in: path
+        name: metricType
+        required: true
+        type: string
+      - description: Metric name
+        in: path
+        name: metricName
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Значение метрики к примеру - 10.2
+          schema:
+            type: string
+        "404":
+          description: not found
+          schema:
+            type: string
+      summary: Возвращает состояние метрики текстом
+      tags:
+      - Info
+swagger: "2.0"
+tags:
+- description: '"Группа запросов на получение состояние сервера и метрик"'
+  name: Info
+- description: '"Группа запросов на изменение метрик"'
+  name: Storage

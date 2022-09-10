@@ -10,14 +10,17 @@ type EncodeFunc func(msg string) string
 
 // CreateEncodeFunc возвращает функцию, принимает текст и возвращает подписанный ключом хеш
 func CreateEncodeFunc(secretKey string) EncodeFunc {
+	// как показывает бенчмарк, в таком виде, постоянное вычисление секретных ключей
+	// будет делать меньше аллокаций и быстрее работать
+	h := hmac.New(sha256.New, []byte(secretKey))
 	return func(msg string) string {
 		if secretKey == "" {
 			return ""
 		}
 
-		h := hmac.New(sha256.New, []byte(secretKey))
 		h.Write([]byte(msg))
 		sign := h.Sum(nil)
+		h.Reset()
 		return hex.EncodeToString(sign)
 	}
 }

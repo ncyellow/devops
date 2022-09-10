@@ -18,6 +18,10 @@ import (
 	"github.com/ncyellow/devops/internal/server/storage"
 )
 
+var (
+	AnswerOK = []byte("ok")
+)
+
 // @Title DevOPS API
 // @Description Сервис сбора метрик типов Counter, Gauge
 // @Version 1.0
@@ -185,7 +189,7 @@ func (h *Handler) Update() http.HandlerFunc {
 		}
 
 		rw.WriteHeader(http.StatusOK)
-		rw.Write([]byte("ok"))
+		rw.Write(AnswerOK)
 	}
 }
 
@@ -309,7 +313,7 @@ func (h *Handler) UpdateListJSON() http.HandlerFunc {
 		}
 
 		rw.WriteHeader(http.StatusOK)
-		rw.Write([]byte("ok"))
+		rw.Write(AnswerOK)
 	}
 }
 
@@ -392,7 +396,7 @@ func (h *Handler) Ping() http.HandlerFunc {
 			return
 		}
 		rw.WriteHeader(http.StatusOK)
-		rw.Write([]byte("ok"))
+		rw.Write(AnswerOK)
 
 	}
 }

@@ -381,3 +381,42 @@ func (suite *HandlersSuite) TestPingHandler() {
 	}
 	suite.runTableTests(testData)
 }
+
+func newExampleServer() *httptest.Server {
+	conf := config.Config{}
+	repo := repository.NewRepository(conf.GeneralCfg())
+	//! Это пустой вариант хранилища без состояние. Ошибок нет
+	pStore, _ := storage.NewFakeStorage()
+
+	r := NewRouter(repo, &conf, pStore)
+	ts := httptest.NewServer(r)
+	return ts
+}
+
+func ExampleHandler_Ping() {
+	ts := newExampleServer()
+
+	req, _ := http.NewRequest("GET", ts.URL+"/ping", nil)
+	resp, _ := http.DefaultClient.Do(req)
+	respBody, _ := ioutil.ReadAll(resp.Body)
+
+	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
+	// Output:
+	// status = 200, body = ok
+}
+
+func ExampleHandler_UpdateListJSON() {
+	ts := newExampleServer()
+
+	req, _ := http.NewRequest("POST", ts.URL+"/updates/",
+		bytes.NewBuffer([]byte(`[{"id":"jsonGauge","type":"gauge","value": 111},
+								 {"id":"jsonCounter","type":"counter","delta": 123}]`)))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, _ := http.DefaultClient.Do(req)
+	respBody, _ := ioutil.ReadAll(resp.Body)
+
+	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
+	// Output:
+	// status = 200, body = ok
+}

@@ -399,6 +399,7 @@ func ExampleHandler_Ping() {
 	req, _ := http.NewRequest("GET", ts.URL+"/ping", nil)
 	resp, _ := http.DefaultClient.Do(req)
 	respBody, _ := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
 
 	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
 	// Output:
@@ -415,8 +416,91 @@ func ExampleHandler_UpdateListJSON() {
 
 	resp, _ := http.DefaultClient.Do(req)
 	respBody, _ := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
 
 	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
 	// Output:
 	// status = 200, body = ok
+}
+
+func ExampleHandler_UpdateJSON() {
+	ts := newExampleServer()
+
+	req, _ := http.NewRequest("POST", ts.URL+"/update/",
+		bytes.NewBuffer([]byte(`{"id":"jsonGauge","type":"gauge","value": 111}`)))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, _ := http.DefaultClient.Do(req)
+	respBody, _ := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+
+	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
+
+	// Output:
+	// status = 200, body = ok
+}
+
+func ExampleHandler_Update() {
+	ts := newExampleServer()
+
+	req, _ := http.NewRequest("POST", ts.URL+"/update/counter/testCounter/100", nil)
+	req.Header.Set("Content-Type", "text/plain")
+
+	resp, _ := http.DefaultClient.Do(req)
+	respBody, _ := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+
+	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
+
+	// Output:
+	// status = 200, body = ok
+}
+
+func ExampleHandler_Value() {
+	ts := newExampleServer()
+	{
+		// Добавляем testCounter
+		req, _ := http.NewRequest("POST", ts.URL+"/update/counter/testCounter/100", nil)
+		req.Header.Set("Content-Type", "text/plain")
+
+		resp, _ := http.DefaultClient.Do(req)
+		resp.Body.Close()
+	}
+
+	req, _ := http.NewRequest("GET", ts.URL+"/value/counter/testCounter", nil)
+	req.Header.Set("Content-Type", "text/plain")
+
+	resp, _ := http.DefaultClient.Do(req)
+	respBody, _ := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+
+	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
+
+	// Output:
+	// status = 200, body = 100
+}
+
+func ExampleHandler_ValueJSON() {
+	ts := newExampleServer()
+	{
+		// Добавляем testCounter
+		req, _ := http.NewRequest("POST", ts.URL+"/update/counter/jsonCounter/100", nil)
+		req.Header.Set("Content-Type", "text/plain")
+
+		resp, _ := http.DefaultClient.Do(req)
+		resp.Body.Close()
+	}
+
+	req, _ := http.NewRequest("POST", ts.URL+"/value/",
+		bytes.NewBuffer([]byte(`{"id":"jsonCounter","type":"counter","delta":123}`)))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, _ := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+	respBody, _ := ioutil.ReadAll(resp.Body)
+
+	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
+
+	// Output:
+	// status = 200, body = {"id":"jsonCounter","type":"counter","delta":100}
 }

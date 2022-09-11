@@ -21,9 +21,7 @@ func main() {
 	flag.BoolVar(&cfg.Restore, "r", true, "restore from file. true if needed")
 	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "filename that used for save metrics state")
 	flag.StringVar(&cfg.SecretKey, "k", "", "key for hash metrics")
-	//flag.StringVar(&cfg.DatabaseConn, "d", "", "connection string to postgresql")
-
-	flag.StringVar(&cfg.DatabaseConn, "d", "user=postgres password=12345 host=localhost port=5433 dbname=gopractice", "connection string to postgresql")
+	flag.StringVar(&cfg.DatabaseConn, "d", "", "connection string to postgresql")
 
 	// Сначала парсим командную строку
 	flag.Parse()

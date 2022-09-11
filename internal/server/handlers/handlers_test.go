@@ -396,9 +396,18 @@ func newExampleServer() *httptest.Server {
 func ExampleHandler_Ping() {
 	ts := newExampleServer()
 
-	req, _ := http.NewRequest("GET", ts.URL+"/ping", nil)
-	resp, _ := http.DefaultClient.Do(req)
-	respBody, _ := ioutil.ReadAll(resp.Body)
+	req, err := http.NewRequest("GET", ts.URL+"/ping", nil)
+	if err != nil {
+		return
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
 	defer resp.Body.Close()
 
 	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
@@ -414,8 +423,14 @@ func ExampleHandler_UpdateListJSON() {
 								 {"id":"jsonCounter","type":"counter","delta": 123}]`)))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, _ := http.DefaultClient.Do(req)
-	respBody, _ := ioutil.ReadAll(resp.Body)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
 	defer resp.Body.Close()
 
 	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
@@ -430,8 +445,14 @@ func ExampleHandler_UpdateJSON() {
 		bytes.NewBuffer([]byte(`{"id":"jsonGauge","type":"gauge","value": 111}`)))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, _ := http.DefaultClient.Do(req)
-	respBody, _ := ioutil.ReadAll(resp.Body)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
 	defer resp.Body.Close()
 
 	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
@@ -446,8 +467,14 @@ func ExampleHandler_Update() {
 	req, _ := http.NewRequest("POST", ts.URL+"/update/counter/testCounter/100", nil)
 	req.Header.Set("Content-Type", "text/plain")
 
-	resp, _ := http.DefaultClient.Do(req)
-	respBody, _ := ioutil.ReadAll(resp.Body)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
 	defer resp.Body.Close()
 
 	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
@@ -463,15 +490,27 @@ func ExampleHandler_Value() {
 		req, _ := http.NewRequest("POST", ts.URL+"/update/counter/testCounter/100", nil)
 		req.Header.Set("Content-Type", "text/plain")
 
-		resp, _ := http.DefaultClient.Do(req)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return
+		}
 		resp.Body.Close()
 	}
 
-	req, _ := http.NewRequest("GET", ts.URL+"/value/counter/testCounter", nil)
+	req, err := http.NewRequest("GET", ts.URL+"/value/counter/testCounter", nil)
+	if err != nil {
+		return
+	}
 	req.Header.Set("Content-Type", "text/plain")
 
-	resp, _ := http.DefaultClient.Do(req)
-	respBody, _ := ioutil.ReadAll(resp.Body)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
 	defer resp.Body.Close()
 
 	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
@@ -487,7 +526,10 @@ func ExampleHandler_ValueJSON() {
 		req, _ := http.NewRequest("POST", ts.URL+"/update/counter/jsonCounter/100", nil)
 		req.Header.Set("Content-Type", "text/plain")
 
-		resp, _ := http.DefaultClient.Do(req)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return
+		}
 		resp.Body.Close()
 	}
 
@@ -495,9 +537,15 @@ func ExampleHandler_ValueJSON() {
 		bytes.NewBuffer([]byte(`{"id":"jsonCounter","type":"counter","delta":123}`)))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, _ := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
 	defer resp.Body.Close()
-	respBody, _ := ioutil.ReadAll(resp.Body)
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
 
 	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
 

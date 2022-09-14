@@ -21,14 +21,14 @@ type MetricSource interface {
 	Gauges() map[string]float64
 }
 
-// RuntimeSource реализация источника метрик на основании пакета runtime
+// RuntimeSource реализация источника метрик на основании пакета runtime, реализует интерфейс MetricSource
 type RuntimeSource struct {
 	pollCount   int64
 	randomValue float64
 	runtime.MemStats
 }
 
-// PSUtilSource реализация источника метрик на основании пакета gopsutil
+// PSUtilSource реализация источника метрик на основании пакета gopsutil, реализует интерфейс MetricSource
 type PSUtilSource struct {
 	gauges map[string]float64
 }

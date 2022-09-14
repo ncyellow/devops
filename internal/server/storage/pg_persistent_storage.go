@@ -12,7 +12,7 @@ import (
 	"github.com/ncyellow/devops/internal/server/config"
 )
 
-// RunStorageSaver запускает сохранение данных pStore по таймеру
+// RunStorageSaver запускает сохранение данных pStore по таймеру с интервалом interval
 func RunStorageSaver(pStore PersistentStorage, interval time.Duration) {
 	if interval == 0 {
 		//! Не нужно сбрасывать на диск если StoreInterval == 0
@@ -29,17 +29,15 @@ func RunStorageSaver(pStore PersistentStorage, interval time.Duration) {
 	}
 }
 
-// PgPersistentStorage Использую связку pgx + pgxpool это дает нам thread safety pool коннектовв
+// PgPersistentStorage структура для работы с pgsql. Реализует интерфейс PersistentStorage
+// Использую связку pgx + pgxpool это дает нам thread safety pool коннектов
 type PgPersistentStorage struct {
 	conf *config.Config
 	pool *pgxpool.Pool
 	repo repository.Repository
 }
 
-func (p *PgPersistentStorage) Ping() error {
-	return p.pool.Ping(context.Background())
-}
-
+// NewPgStorage конструктор хранилища на основе postgresql, явно не используется, только через фабрику
 func NewPgStorage(conf *config.Config, repo repository.Repository) (*PgPersistentStorage, error) {
 
 	pool, err := pgxpool.Connect(context.Background(), conf.DatabaseConn)
@@ -52,22 +50,8 @@ func NewPgStorage(conf *config.Config, repo repository.Repository) (*PgPersisten
 	return &saver, nil
 }
 
-func (p *PgPersistentStorage) init() {
-
-	// Создаем нужные таблицы если их нет и индекс для уникальности имени метрики в таблице
-	queries := []string{
-		`CREATE TABLE IF NOT EXISTS "counters"("@counters" bigserial, "metric_name" text NOT NULL, "value" bigint)`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS "icounters-metric_name" ON "counters" USING btree ("metric_name")`,
-		`CREATE TABLE IF NOT EXISTS "gauges"("@gauges" bigserial,"metric_name" text NOT NULL,"value" double precision)`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS "igauges-metric_name" ON "gauges" USING btree ("metric_name")`,
-	}
-
-	for _, query := range queries {
-		_, err := p.pool.Exec(context.Background(), query)
-		if err != nil {
-			log.Info().Msgf("Не удалось выполнить запрос подготовки базы данных %s", query)
-		}
-	}
+func (p *PgPersistentStorage) Ping() error {
+	return p.pool.Ping(context.Background())
 }
 
 func (p *PgPersistentStorage) Close() {
@@ -208,4 +192,23 @@ func (p *PgPersistentStorage) Save(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+// init инициализация базы данных. Надо бы будет оформить через migrate, но пока так
+func (p *PgPersistentStorage) init() {
+
+	// Создаем нужные таблицы если их нет и индекс для уникальности имени метрики в таблице
+	queries := []string{
+		`CREATE TABLE IF NOT EXISTS "counters"("@counters" bigserial, "metric_name" text NOT NULL, "value" bigint)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS "icounters-metric_name" ON "counters" USING btree ("metric_name")`,
+		`CREATE TABLE IF NOT EXISTS "gauges"("@gauges" bigserial,"metric_name" text NOT NULL,"value" double precision)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS "igauges-metric_name" ON "gauges" USING btree ("metric_name")`,
+	}
+
+	for _, query := range queries {
+		_, err := p.pool.Exec(context.Background(), query)
+		if err != nil {
+			log.Info().Msgf("Не удалось выполнить запрос подготовки базы данных %s", query)
+		}
+	}
 }

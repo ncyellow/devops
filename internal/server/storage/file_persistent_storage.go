@@ -11,19 +11,20 @@ import (
 	"github.com/ncyellow/devops/internal/server/config"
 )
 
-// FileStorageSaver реализация хранилища на основе файла
+// FileStorageSaver реализация хранилища на основе файла, реализует интерфейс PersistentStorage
 type FileStorageSaver struct {
 	conf *config.Config
 	repo repository.Repository
 }
 
-func (m *FileStorageSaver) Ping() error {
-	return nil
-}
-
+// NewFileStorage конструктор хранилища на основе файла, явно не используется, только через фабрику
 func NewFileStorage(conf *config.Config, repo repository.Repository) (*FileStorageSaver, error) {
 	saver := FileStorageSaver{conf: conf, repo: repo}
 	return &saver, nil
+}
+
+func (m *FileStorageSaver) Ping() error {
+	return nil
 }
 
 func (m *FileStorageSaver) Close() {

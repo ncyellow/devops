@@ -1,6 +1,7 @@
 package hash
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -88,4 +89,16 @@ func TestCheckSign(t *testing.T) {
 			}
 		})
 	}
+}
+
+func ExampleCreateEncodeFunc() {
+	secretKey := "/tmp/secretKey"
+	msg := "test message"
+
+	encodeFunc := CreateEncodeFunc(secretKey)
+	hashResult := encodeFunc(msg)
+	fmt.Println(hashResult)
+
+	// Output:
+	// 6a98f91fe9f64e7e0491ed7c84bddd1673b1a76841446c2786a15c85cd3d1f14
 }

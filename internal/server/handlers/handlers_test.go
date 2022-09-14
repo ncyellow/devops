@@ -180,7 +180,7 @@ func (suite *HandlersSuite) TestValueHandler() {
 			body:        nil,
 			want: want{
 				statusCode: http.StatusNotFound,
-				body:       "",
+				body:       "not found",
 			},
 		},
 		{
@@ -202,7 +202,7 @@ func (suite *HandlersSuite) TestValueHandler() {
 			body:        nil,
 			want: want{
 				statusCode: http.StatusNotFound,
-				body:       "",
+				body:       "not found",
 			},
 		},
 	}
@@ -380,4 +380,175 @@ func (suite *HandlersSuite) TestPingHandler() {
 		},
 	}
 	suite.runTableTests(testData)
+}
+
+func newExampleServer() *httptest.Server {
+	conf := config.Config{}
+	repo := repository.NewRepository(conf.GeneralCfg())
+	//! Это пустой вариант хранилища без состояние. Ошибок нет
+	pStore, _ := storage.NewFakeStorage()
+
+	r := NewRouter(repo, &conf, pStore)
+	ts := httptest.NewServer(r)
+	return ts
+}
+
+func ExampleHandler_Ping() {
+	ts := newExampleServer()
+
+	req, err := http.NewRequest("GET", ts.URL+"/ping", nil)
+	if err != nil {
+		return
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
+	// Output:
+	// status = 200, body = ok
+}
+
+func ExampleHandler_UpdateListJSON() {
+	ts := newExampleServer()
+
+	req, _ := http.NewRequest("POST", ts.URL+"/updates/",
+		bytes.NewBuffer([]byte(`[{"id":"jsonGauge","type":"gauge","value": 111},
+								 {"id":"jsonCounter","type":"counter","delta": 123}]`)))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
+	// Output:
+	// status = 200, body = ok
+}
+
+func ExampleHandler_UpdateJSON() {
+	ts := newExampleServer()
+
+	req, _ := http.NewRequest("POST", ts.URL+"/update/",
+		bytes.NewBuffer([]byte(`{"id":"jsonGauge","type":"gauge","value": 111}`)))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
+
+	// Output:
+	// status = 200, body = ok
+}
+
+func ExampleHandler_Update() {
+	ts := newExampleServer()
+
+	req, _ := http.NewRequest("POST", ts.URL+"/update/counter/testCounter/100", nil)
+	req.Header.Set("Content-Type", "text/plain")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
+
+	// Output:
+	// status = 200, body = ok
+}
+
+func ExampleHandler_Value() {
+	ts := newExampleServer()
+	{
+		// Добавляем testCounter
+		req, _ := http.NewRequest("POST", ts.URL+"/update/counter/testCounter/100", nil)
+		req.Header.Set("Content-Type", "text/plain")
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return
+		}
+		resp.Body.Close()
+	}
+
+	req, err := http.NewRequest("GET", ts.URL+"/value/counter/testCounter", nil)
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "text/plain")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
+
+	// Output:
+	// status = 200, body = 100
+}
+
+func ExampleHandler_ValueJSON() {
+	ts := newExampleServer()
+	{
+		// Добавляем testCounter
+		req, _ := http.NewRequest("POST", ts.URL+"/update/counter/jsonCounter/100", nil)
+		req.Header.Set("Content-Type", "text/plain")
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return
+		}
+		resp.Body.Close()
+	}
+
+	req, _ := http.NewRequest("POST", ts.URL+"/value/",
+		bytes.NewBuffer([]byte(`{"id":"jsonCounter","type":"counter","delta":123}`)))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("status = %d, body = %s\n", resp.StatusCode, string(respBody))
+
+	// Output:
+	// status = 200, body = {"id":"jsonCounter","type":"counter","delta":100}
 }

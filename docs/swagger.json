@@ -1,0 +1,355 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Сервис сбора метрик типов Counter, Gauge",
+        "title": "DevOPS API",
+        "contact": {
+            "email": "ncyellow@yandex.ru"
+        },
+        "version": "1.0"
+    },
+    "paths": {
+        "/": {
+            "get": {
+                "description": "Просто генерим рандомного формата html с метриками",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Info"
+                ],
+                "summary": "Возвращает html со списком метрик",
+                "operationId": "infoList",
+                "responses": {
+                    "200": {
+                        "description": "html с метриками",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/ping": {
+            "get": {
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Info"
+                ],
+                "summary": "Запрос состояния доступности базы данных",
+                "operationId": "infoPing",
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "ping error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/update/": {
+            "post": {
+                "description": "важный момент что запрос на состояние метрики должен быть подписан корректно иначе, отлуп",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Storage"
+                ],
+                "summary": "обновляем состояние метрики но уже через json body",
+                "operationId": "storageUpdateJSON",
+                "parameters": [
+                    {
+                        "description": "Metric object",
+                        "name": "metric_data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.Metrics"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "incorrect metric sign",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "incorrect metric type, content type not support, invalid deserialization",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/update/{metricType}/{metricName}/{metricValue}": {
+            "post": {
+                "description": "на вход rest url на выход plain ок если все хорошо",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Storage"
+                ],
+                "summary": "обновляем состояние метрики через rest api",
+                "operationId": "storageValue",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Metric type",
+                        "name": "metricType",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Metric name",
+                        "name": "metricName",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Metric value",
+                        "name": "metricValue",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "incorrect metric value",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "incorrect metric name",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "501": {
+                        "description": "incorrect metric type",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/updates/": {
+            "post": {
+                "description": "обязательность подписи как и UpdateJSON остается",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Storage"
+                ],
+                "summary": "обновляем состояние всех метрик переданных  в json",
+                "operationId": "storageUpdateListJSON",
+                "parameters": [
+                    {
+                        "description": "Metrics list object",
+                        "name": "metric_data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/handlers.Metrics"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "incorrect metric sign",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "incorrect metric type, content type not support, invalid deserialization",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/value/": {
+            "post": {
+                "description": "На вход принимаем json с параметрами интересующей метрики в ответ шлем json с ее состоянием + подпись",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Info"
+                ],
+                "summary": "Возвращает состояние метрики в формате json",
+                "operationId": "infoValueJSON",
+                "parameters": [
+                    {
+                        "description": "Metric name",
+                        "name": "ID",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Metric type",
+                        "name": "MType",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.Metrics"
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "content type not support, Read data problem, invalid deserialization",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/value/{metricType}/{metricName}": {
+            "get": {
+                "description": "на вход rest url на выход plain значение",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Info"
+                ],
+                "summary": "Возвращает состояние метрики текстом",
+                "operationId": "infoValue",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Metric type",
+                        "name": "metricType",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Metric name",
+                        "name": "metricName",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Значение метрики к примеру - 10.2",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "handlers.Metrics": {
+            "type": "object",
+            "properties": {
+                "delta": {
+                    "description": "Значение метрики в случае передачи counter",
+                    "type": "integer"
+                },
+                "hash": {
+                    "description": "Значение хеш-функции",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "Имя метрики",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "Параметр, принимающий значение gauge или counter",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "Значение метрики в случае передачи gauge",
+                    "type": "number"
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "description": "\"Группа запросов на получение состояние сервера и метрик\"",
+            "name": "Info"
+        },
+        {
+            "description": "\"Группа запросов на изменение метрик\"",
+            "name": "Storage"
+        }
+    ]
+}

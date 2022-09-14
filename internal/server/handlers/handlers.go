@@ -1,3 +1,4 @@
+// Package handlers содержит роутинг и все обработчики запросов сервера
 package handlers
 
 import (
@@ -17,6 +18,22 @@ import (
 	"github.com/ncyellow/devops/internal/server/storage"
 )
 
+var (
+	AnswerOK = []byte("ok")
+)
+
+// @Title DevOPS API
+// @Description Сервис сбора метрик типов Counter, Gauge
+// @Version 1.0
+
+// @Contact.email ncyellow@yandex.ru
+
+// @Tag.name Info
+// @Tag.description "Группа запросов на получение состояние сервера и метрик"
+
+// @Tag.name Storage
+// @Tag.description "Группа запросов на изменение метрик"
+
 // Handler структура данных для работы с роутингом
 type Handler struct {
 	*chi.Mux
@@ -25,11 +42,12 @@ type Handler struct {
 	pStore storage.PersistentStorage
 }
 
-// NewRouter создает chi.NewRouter и описывает маршрутизацию по url
+// NewRouter создает chi.NewRouter и описывает маршрутизацию
 func NewRouter(repo repository.Repository, conf *config.Config, pStore storage.PersistentStorage) chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(middlewares.EncoderGZIP)
+	r.Mount("/debug", middleware.Profiler())
 
 	handler := &Handler{
 		Mux:    r,
@@ -48,7 +66,14 @@ func NewRouter(repo repository.Repository, conf *config.Config, pStore storage.P
 	return handler
 }
 
-// List возвращает html произвольного формата со всеми метриками
+// List возвращает html произвольного формата со всеми метриками сервера
+// @Tags Info
+// @Summary Возвращает html со списком метрик
+// @Description Просто генерим рандомного формата html с метриками
+// @ID infoList
+// @Produce plain
+// @Success 200 {string} string "html с метриками"
+// @Router / [get]
 func (h *Handler) List() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		rw.Header().Set("Content-Type", "text/html")
@@ -57,7 +82,17 @@ func (h *Handler) List() http.HandlerFunc {
 	}
 }
 
-// Value возвращает значение конкретной метрики
+// Value возвращает значение конкретной метрики через GET
+// @Tags Info
+// @Summary Возвращает состояние метрики текстом
+// @Description на вход rest url на выход plain значение
+// @ID infoValue
+// @Produce plain
+// @Param metricType path string true "Metric type"
+// @Param metricName path string true "Metric name"
+// @Success 200 {string} string "Значение метрики к примеру - 10.2"
+// @Failure 404 {string} string "not found"
+// @Router /value/{metricType}/{metricName} [get]
 func (h *Handler) Value() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		metricType := chi.URLParam(r, "metricType")
@@ -70,6 +105,7 @@ func (h *Handler) Value() http.HandlerFunc {
 				return
 			} else {
 				rw.WriteHeader(http.StatusNotFound)
+				rw.Write([]byte("not found"))
 				return
 			}
 		case repository.Counter:
@@ -79,15 +115,30 @@ func (h *Handler) Value() http.HandlerFunc {
 				return
 			} else {
 				rw.WriteHeader(http.StatusNotFound)
+				rw.Write([]byte("not found"))
 				return
 			}
 		default:
 			rw.WriteHeader(http.StatusNotFound)
+			rw.Write([]byte("not found"))
 		}
 	}
 }
 
-// Update обновляет значение конкретной метрики
+// Update обновляет значение конкретной метрики в rest формате
+// @Tags Storage
+// @Summary обновляем состояние метрики через rest api
+// @Description на вход rest url на выход plain ок если все хорошо
+// @ID storageValue
+// @Produce plain
+// @Param metricType path string true "Metric type"
+// @Param metricName path string true "Metric name"
+// @Param metricValue path string true "Metric value"
+// @Success 200 {string} string "ok"
+// @Failure 400 {string} string "incorrect metric value"
+// @Failure 500 {string} string "incorrect metric name"
+// @Failure 501 {string} string "incorrect metric type"
+// @Router /update/{metricType}/{metricName}/{metricValue} [post]
 func (h *Handler) Update() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		//! Метод только post
@@ -138,11 +189,22 @@ func (h *Handler) Update() http.HandlerFunc {
 		}
 
 		rw.WriteHeader(http.StatusOK)
-		rw.Write([]byte("ok"))
+		rw.Write(AnswerOK)
 	}
 }
 
 // UpdateJSON возвращает значение конкретной метрики, но запрос приходит в json body
+// @Tags Storage
+// @Summary обновляем состояние метрики но уже через json body
+// @Description важный момент что запрос на состояние метрики должен быть подписан корректно иначе, отлуп
+// @ID storageUpdateJSON
+// @Accept json
+// @Produce plain
+// @Param metric_data body Metrics true "Metric object"
+// @Success 200 {string} string "ok"
+// @Failure 400 {string} string "incorrect metric sign"
+// @Failure 500 {string} string "incorrect metric type, content type not support, invalid deserialization"
+// @Router /update/ [post]
 func (h *Handler) UpdateJSON() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Content-Type") != "application/json" {
@@ -188,6 +250,17 @@ func (h *Handler) UpdateJSON() http.HandlerFunc {
 }
 
 // UpdateListJSON обновляет значение всех метрик переданных в json body
+// @Tags Storage
+// @Summary обновляем состояние всех метрик переданных  в json
+// @Description обязательность подписи как и UpdateJSON остается
+// @ID storageUpdateListJSON
+// @Accept json
+// @Produce plain
+// @Param metric_data body []Metrics true "Metrics list object"
+// @Success 200 {string} string "ok"
+// @Failure 400 {string} string "incorrect metric sign"
+// @Failure 500 {string} string "incorrect metric type, content type not support, invalid deserialization"
+// @Router /updates/ [post]
 func (h *Handler) UpdateListJSON() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 
@@ -240,11 +313,23 @@ func (h *Handler) UpdateListJSON() http.HandlerFunc {
 		}
 
 		rw.WriteHeader(http.StatusOK)
-		rw.Write([]byte("ok"))
+		rw.Write(AnswerOK)
 	}
 }
 
-// ValueJSON обрабатывает POST запрос, который возвращает список всех метрик в виде json
+// ValueJSON обрабатывает POST запрос, который возвращает значение конкретной метрики в виде json
+// @Tags Info
+// @Summary Возвращает состояние метрики в формате json
+// @Description На вход принимаем json с параметрами интересующей метрики в ответ шлем json с ее состоянием + подпись
+// @ID infoValueJSON
+// @Accept  json
+// @Produce json
+// @Param ID body string true "Metric name"
+// @Param MType body string true "Metric type"
+// @Success 200 {object} Metrics
+// @Failure 404 {string} string "not found"
+// @Failure 500 {string} string "content type not support, Read data problem, invalid deserialization"
+// @Router /value/ [post]
 func (h *Handler) ValueJSON() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Content-Type") != "application/json" {
@@ -289,10 +374,18 @@ func (h *Handler) ValueJSON() http.HandlerFunc {
 		}
 
 		rw.WriteHeader(http.StatusNotFound)
+		rw.Write([]byte("not found"))
 	}
 }
 
-// Ping возвращает доступность базы данных
+// Ping возвращает состояние доступности базы данных
+// @Tags Info
+// @Summary Запрос состояния доступности базы данных
+// @ID infoPing
+// @Produce plain
+// @Success 200 {string} string "ok"
+// @Failure 500 {string} string "ping error"
+// @Router /ping [get]
 func (h *Handler) Ping() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 
@@ -303,7 +396,7 @@ func (h *Handler) Ping() http.HandlerFunc {
 			return
 		}
 		rw.WriteHeader(http.StatusOK)
-		rw.Write([]byte("ok"))
+		rw.Write(AnswerOK)
 
 	}
 }

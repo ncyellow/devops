@@ -1,3 +1,7 @@
+// Package server содержит кодовую базу сервера.
+// Конкретно данный файл содержит основной код запуска сервера:
+// server := server.Server{Conf: &cfg}
+// server.RunServer()
 package server
 
 import (
@@ -13,10 +17,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// Server структура сервера
 type Server struct {
 	Conf *config.Config
 }
 
+// RunServer блокирующая функция запуска сервера.
+// После запуска встает в ожидание os.Interrupt, syscall.SIGINT, syscall.SIGTERM
 func (s Server) RunServer() {
 	repo := repository.NewRepository(s.Conf.GeneralCfg())
 

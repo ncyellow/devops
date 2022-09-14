@@ -8,7 +8,7 @@ type PersistentStorage interface {
 	Save(ctx context.Context) error
 	// Load загрузка данных из хранилища
 	Load() error
-	// Ping проверка доступности хранилища
+	// Ping проверка доступности хранилища, возвращает ошибку в случае отсутствия коннекта
 	Ping() error
 	// Close вызывается при окончании работы для закрытия коннектов и закрытия файлов
 	Close()

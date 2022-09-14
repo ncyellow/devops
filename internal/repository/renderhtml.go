@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// RenderHTML генерация html с данными метрик в произвольной форме.
 func RenderHTML(metrics []Metrics) string {
 	htmlTmpl := `
 	<html>

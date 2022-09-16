@@ -1,3 +1,7 @@
+// Package agent содержит АПИ для сбору и отправки метрик от разных источников
+// Пример использования
+// runtimeCol := &Collector{ Conf:   collector.Conf.GeneralCfg(), Source: &RuntimeSource{}, }
+// go RunCollector(ctx, collector.Conf, runtimeCol, metricChannel, &wg)
 package agent
 
 import (

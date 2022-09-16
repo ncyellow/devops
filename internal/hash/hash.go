@@ -1,3 +1,4 @@
+// Package hash содержит функции для подписи данных
 package hash
 
 import (

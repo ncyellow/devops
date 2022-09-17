@@ -38,25 +38,25 @@ func (m *FileStorageSaver) Load() error {
 }
 
 func (m *FileStorageSaver) Save(context.Context) error {
-	SaveToFile(m.conf.StoreFile, m.repo)
-	return nil
+	return SaveToFile(m.conf.StoreFile, m.repo)
 }
 
 // SaveToFile сохраняет данные repo в файл с именем fileName
-func SaveToFile(fileName string, repo repository.Repository) {
+func SaveToFile(fileName string, repo repository.Repository) error {
 	//! Если файл не задан, ок ничего не делаем
 	if fileName == "" {
-		return
+		return nil
 	}
 
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
 		log.Info().Msgf("can't open file %s", fileName)
-		return
+		return err
 	}
 	defer file.Close()
 	encoder := json.NewEncoder(file)
 	encoder.Encode(&repo)
+	return nil
 }
 
 // RestoreFromFile загружает данные в repo из файла с именем fileName

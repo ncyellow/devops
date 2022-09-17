@@ -56,8 +56,8 @@ func TestNewFileStorage(t *testing.T) {
 	conf := config.Config{}
 	repo := repository.NewRepository(conf.GeneralCfg())
 	storage, err := NewFileStorage(&conf, repo)
-	defer storage.Close()
 	assert.NoError(t, err)
+	defer storage.Close()
 	assert.Nil(t, storage.Ping())
 	assert.Nil(t, storage.Load())
 	assert.Nil(t, storage.Save(context.Background()))

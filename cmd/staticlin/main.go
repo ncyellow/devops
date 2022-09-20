@@ -4,11 +4,14 @@
 //	3."golang.org/x/tools/go/analysis/passes/structtag"
 //  4. из пакета statickcheck все проверки вида SA, ST. QF, S1
 //  5. пользовательский анализатор на использование os.Exit в main
+//  6. Публичный анализатор sqlrows + forcetypeassert
 // Стандартное использование main .\...
 
 package main
 
 import (
+	"github.com/gostaticanalysis/forcetypeassert"
+	"github.com/gostaticanalysis/sqlrows/passes/sqlrows"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
 	"golang.org/x/tools/go/analysis/passes/printf"
@@ -29,6 +32,8 @@ func main() {
 		shadow.Analyzer,
 		structtag.Analyzer,
 		analysis2.ExitCheckAnalyzer,
+		sqlrows.Analyzer,
+		forcetypeassert.Analyzer,
 	}
 
 	// Как я проверил словарь Analyzers содержит только SA проверки, добавляем все что в нем есть

@@ -26,7 +26,7 @@ func TestRuntimeSource(t *testing.T) {
 	assert.Equal(t, counters["PollCount"], int64(2))
 	//! Проверяем что метрики gauges присутствуют,
 	// но договорились что проверять наличие всех метрик избыточно
-	assert.Equal(t, len(gauges), 28)
+	assert.Equal(t, len(gauges) > 0, true)
 }
 
 func TestPSUtilSource(t *testing.T) {

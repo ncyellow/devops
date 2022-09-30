@@ -1,3 +1,4 @@
+// Package repository содержит интерфейс для хранения метрик и сам тип метрики
 package repository
 
 import (

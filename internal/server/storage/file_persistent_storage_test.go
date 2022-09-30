@@ -1,8 +1,8 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
-
 	"github.com/ncyellow/devops/internal/repository"
 	"github.com/ncyellow/devops/internal/server/config"
 
@@ -33,7 +33,8 @@ func TestSaveRestoreFromFile(t *testing.T) {
 	defer os.Remove(fileName)
 
 	// Сохраняем в файл
-	SaveToFile(fileName, repo)
+	err = SaveToFile(fileName, repo)
+	assert.NoError(t, err)
 
 	// читаем из файла и сравниваем метрики
 	newRepo := repository.NewRepository(cfg.GeneralCfg())
@@ -43,4 +44,21 @@ func TestSaveRestoreFromFile(t *testing.T) {
 	// Второй вариант сравнить их json представление
 	assert.Equal(t, repository.RenderHTML(repo.ToMetrics()), repository.RenderHTML(newRepo.ToMetrics()))
 
+}
+
+func TestSaveToFile(t *testing.T) {
+	conf := config.Config{}
+	repo := repository.NewRepository(conf.GeneralCfg())
+	assert.NoError(t, SaveToFile("file doesn't not exists", repo))
+}
+
+func TestNewFileStorage(t *testing.T) {
+	conf := config.Config{}
+	repo := repository.NewRepository(conf.GeneralCfg())
+	storage, err := NewFileStorage(&conf, repo)
+	assert.NoError(t, err)
+	defer storage.Close()
+	assert.Nil(t, storage.Ping())
+	assert.Nil(t, storage.Load())
+	assert.Nil(t, storage.Save(context.Background()))
 }

@@ -1,3 +1,4 @@
+// Package repository содержит имплементацию Repositiory для хранения метрик в памяти
 package repository
 
 import (

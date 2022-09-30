@@ -1,3 +1,8 @@
+// Package storage содержит разные имплементации сохранения метрик
+// В никуда, на дис в файл, либо в БД
+// Стандартный вариант использования
+// repo := repository.NewRepository(s.Conf.GeneralCfg())
+//	saver, err := storage.CreateStorage(s.Conf, repo)
 package storage
 
 import (

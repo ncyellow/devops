@@ -1,3 +1,4 @@
+// Package config содержит настройки сервера
 package config
 
 import (

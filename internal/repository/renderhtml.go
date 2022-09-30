@@ -1,3 +1,4 @@
+// Package repository содержит функционал по генерации рандомного html по списку метрик
 package repository
 
 import (

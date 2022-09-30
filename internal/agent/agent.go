@@ -1,3 +1,7 @@
+// Package agent содержит код агента по сборку метрик
+// основное использование:
+// collector := agent.Agent{Conf: &cfg}
+// log.Fatal().Err(collector.Run())
 package agent
 
 import (

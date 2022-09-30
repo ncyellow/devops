@@ -1,10 +1,21 @@
 package repository
 
 import (
+	"github.com/stretchr/testify/assert"
 	"testing"
 
 	"github.com/ncyellow/devops/internal/hash"
 )
+
+func TestMetrics_CalcHash(t *testing.T) {
+	//! Проверяем что хеш от не адекватного типа метрики не считается
+	metric := Metrics{
+		ID:    "unknownMTypeMetric",
+		MType: "unknownMTypeMetric",
+	}
+	encodeFunc := hash.CreateEncodeFunc("superKey")
+	assert.Equal(t, metric.CalcHash(encodeFunc), "")
+}
 
 func BenchmarkMetrics_CalcHash(b *testing.B) {
 	b.StopTimer()

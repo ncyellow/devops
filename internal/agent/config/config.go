@@ -1,3 +1,4 @@
+// Package config определяет параметры настройки агента
 package config
 
 import (

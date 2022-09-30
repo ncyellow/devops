@@ -101,7 +101,8 @@ func (h *Handler) Value() http.HandlerFunc {
 		case repository.Gauge:
 			val, ok := h.repo.Gauge(metricName)
 			if ok {
-				rw.Write([]byte(fmt.Sprintf("%.03f", val)))
+				//rw.Write([]byte(fmt.Sprintf("%.03f", val)))
+				fmt.Fprintf(rw, "%.03f", val)
 				return
 			} else {
 				rw.WriteHeader(http.StatusNotFound)
@@ -111,7 +112,8 @@ func (h *Handler) Value() http.HandlerFunc {
 		case repository.Counter:
 			val, ok := h.repo.Counter(metricName)
 			if ok {
-				rw.Write([]byte(fmt.Sprintf("%d", val)))
+				//rw.Write([]byte(fmt.Sprintf("%d", val)))
+				fmt.Fprintf(rw, "%d", val)
 				return
 			} else {
 				rw.WriteHeader(http.StatusNotFound)

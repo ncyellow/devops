@@ -32,6 +32,7 @@ func main() {
 	flag.BoolVar(&cfg.Restore, "r", true, "restore from file. true if needed")
 	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "filename that used for save metrics state")
 	flag.StringVar(&cfg.SecretKey, "k", "", "key for hash metrics")
+	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "private server crypto key")
 	flag.StringVar(&cfg.DatabaseConn, "d", "", "connection string to postgresql")
 
 	// Сначала парсим командную строку

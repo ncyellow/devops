@@ -5,6 +5,7 @@ package genconfig
 type GeneralConfig struct {
 	Address   string `env:"ADDRESS"`
 	SecretKey string `env:"KEY"`
+	CryptoKey string `env:"CRYPTO_KEY"`
 }
 
 func (g *GeneralConfig) GeneralCfg() *GeneralConfig {

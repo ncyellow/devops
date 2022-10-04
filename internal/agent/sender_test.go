@@ -25,6 +25,6 @@ func BenchmarkSendMetricsBatch(b *testing.B) {
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		SendMetricsBatch(metrics, "http://unknown/updates/")
+		SendMetricsBatch(metrics, "http://unknown/updates/", nil)
 	}
 }

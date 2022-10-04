@@ -8,9 +8,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/ncyellow/devops/internal/crypto/rsa"
 	"github.com/ncyellow/devops/internal/hash"
 	"github.com/ncyellow/devops/internal/repository"
 	"github.com/ncyellow/devops/internal/server/config"
+	"github.com/rs/zerolog/log"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -37,9 +39,10 @@ var (
 // Handler структура данных для работы с роутингом
 type Handler struct {
 	*chi.Mux
-	conf   *config.Config
-	repo   repository.Repository
-	pStore storage.PersistentStorage
+	conf    *config.Config
+	repo    repository.Repository
+	pStore  storage.PersistentStorage
+	decoder *rsa.Decoder
 }
 
 // NewRouter создает chi.NewRouter и описывает маршрутизацию
@@ -49,11 +52,21 @@ func NewRouter(repo repository.Repository, conf *config.Config, pStore storage.P
 	r.Use(middlewares.EncoderGZIP)
 	r.Mount("/debug", middleware.Profiler())
 
+	var decoder *rsa.Decoder
+	if conf.CryptoKey != "" {
+		dec, err := rsa.NewDecoder(conf.CryptoKey)
+		if err != nil {
+			log.Info().Msgf("не корректный файл rsa приватного ключа %s", err.Error())
+		}
+		decoder = dec
+	}
+
 	handler := &Handler{
-		Mux:    r,
-		conf:   conf,
-		repo:   repo,
-		pStore: pStore,
+		Mux:     r,
+		conf:    conf,
+		repo:    repo,
+		pStore:  pStore,
+		decoder: decoder,
 	}
 	handler.Get("/", handler.List())
 	handler.Get("/value/{metricType}/{metricName}", handler.Value())
@@ -278,6 +291,17 @@ func (h *Handler) UpdateListJSON() http.HandlerFunc {
 			rw.Write([]byte("Read data problem"))
 			return
 		}
+
+		//! Если задан декодер мы обязаны декодировать приватным ключом данные
+		if h.decoder != nil {
+			reqBody, err = h.decoder.Decode(reqBody)
+			if err != nil {
+				rw.WriteHeader(http.StatusInternalServerError)
+				rw.Write([]byte("invalid deserialization"))
+				return
+			}
+		}
+
 		var metrics []repository.Metrics
 		err = json.Unmarshal(reqBody, &metrics)
 

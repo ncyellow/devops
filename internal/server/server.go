@@ -46,7 +46,7 @@ func (s Server) RunServer() {
 		}
 	}()
 
-	go storage.RunStorageSaver(saver, s.Conf.StoreInterval)
+	go storage.RunStorageSaver(saver, s.Conf.StoreInterval.Duration)
 
 	<-done
 }

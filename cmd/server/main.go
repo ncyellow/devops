@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -26,9 +28,22 @@ func main() {
 	log.Info().Msg("Старт сервера")
 
 	var cfg config.Config
+	confFile := ""
+	flag.StringVar(&confFile, "c", "", "config file")
+	flag.Parse()
+	if confFile != "" {
+		file, err := ioutil.ReadFile(confFile)
+		if err != nil {
+			log.Fatal().Msgf("Ошибка при чтении конфигурационного файла %s", err.Error())
+		}
+		err = json.Unmarshal(file, &cfg)
+		if err != nil {
+			log.Fatal().Msgf("Ошибка при разборе конфигурационного файла %s", err.Error())
+		}
+	}
 
 	flag.StringVar(&cfg.Address, "a", "localhost:8080", "address in the format host:port")
-	flag.DurationVar(&cfg.StoreInterval, "i", time.Second*300, "store interval in the format 300s")
+	flag.DurationVar(&cfg.StoreInterval.Duration, "i", time.Second*300, "store interval in the format 300s")
 	flag.BoolVar(&cfg.Restore, "r", true, "restore from file. true if needed")
 	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "filename that used for save metrics state")
 	flag.StringVar(&cfg.SecretKey, "k", "", "key for hash metrics")

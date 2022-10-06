@@ -26,7 +26,7 @@ func RunSender(ctx context.Context, conf *config.Config, out <-chan []repository
 	url := fmt.Sprintf("http://%s/updates/", conf.Address)
 	urlSingle := fmt.Sprintf("http://%s/update/", conf.Address)
 
-	tickerReport := time.NewTicker(conf.ReportInterval)
+	tickerReport := time.NewTicker(conf.ReportInterval.Duration)
 	defer tickerReport.Stop()
 
 	for {

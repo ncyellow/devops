@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -26,9 +28,23 @@ func main() {
 	log.Info().Msg("Старт агента")
 	var cfg config.Config
 
+	confFile := ""
+	flag.StringVar(&confFile, "c", "", "config file")
+	flag.Parse()
+	if confFile != "" {
+		file, err := ioutil.ReadFile(confFile)
+		if err != nil {
+			log.Fatal().Msgf("Ошибка при чтении конфигурационного файла %s", err.Error())
+		}
+		err = json.Unmarshal(file, &cfg)
+		if err != nil {
+			log.Fatal().Msgf("Ошибка при разборе конфигурационного файла %s", err.Error())
+		}
+	}
+
 	flag.StringVar(&cfg.Address, "a", "127.0.0.1:8080", "address in the format host:port")
-	flag.DurationVar(&cfg.ReportInterval, "r", time.Second*10, "send to server interval in the format 10s")
-	flag.DurationVar(&cfg.PollInterval, "p", time.Second*2, "polling metrics interval in the format 2s")
+	flag.DurationVar(&cfg.ReportInterval.Duration, "r", time.Second*10, "send to server interval in the format 10s")
+	flag.DurationVar(&cfg.PollInterval.Duration, "p", time.Second*2, "polling metrics interval in the format 2s")
 	flag.StringVar(&cfg.SecretKey, "k", "", "key for hash metrics")
 	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "public agent crypto key")
 

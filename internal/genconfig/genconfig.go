@@ -3,9 +3,9 @@ package genconfig
 
 // GeneralConfig содержит общие параметры по настройке агента и сервера
 type GeneralConfig struct {
-	Address   string `env:"ADDRESS"`
-	SecretKey string `env:"KEY"`
-	CryptoKey string `env:"CRYPTO_KEY"`
+	Address   string `env:"ADDRESS" json:"address"`
+	SecretKey string `env:"KEY" json:"secret_key"`
+	CryptoKey string `env:"CRYPTO_KEY" json:"crypto_key"`
 }
 
 func (g *GeneralConfig) GeneralCfg() *GeneralConfig {

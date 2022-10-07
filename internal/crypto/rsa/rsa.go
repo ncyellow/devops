@@ -1,3 +1,11 @@
+// Package rsa реализовывает возможность шифрования и дешифрования rsa через публичные и приватные ключи
+// Основные варианты использования:
+// 1. Шифрование публичным ключом
+// encoder, err := NewEncoder("test_data/rsa.public")
+// cipherText, err := encoder.Encode(want)
+// 2. Дешифрация приватным ключом
+// decoder, err := NewDecoder("test_data/rsa.private")
+// decodeMsg, err := decoder.Decode(cipherText)
 package rsa
 
 import (

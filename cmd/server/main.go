@@ -25,11 +25,12 @@ func main() {
 
 	log.Info().Msg("Старт сервера")
 
-	confFile := ""
-	flag.StringVar(&confFile, "c", "", "config file")
-	flag.Parse()
-
-	cfg := config.ReadConfig(confFile)
+	//confFile := ""
+	//flag.StringVar(&confFile, "c", "", "config file")
+	//flag.Parse()
+	//
+	//cfg := config.ReadConfig(confFile)
+	var cfg config.Config
 
 	flag.StringVar(&cfg.Address, "a", "localhost:8080", "address in the format host:port")
 	flag.DurationVar(&cfg.StoreInterval.Duration, "i", time.Second*300, "store interval in the format 300s")

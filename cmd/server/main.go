@@ -34,11 +34,11 @@ func main() {
 	if confFile != "" {
 		file, err := ioutil.ReadFile(confFile)
 		if err != nil {
-			log.Fatal().Msgf("Ошибка при чтении конфигурационного файла %s", err.Error())
+			log.Info().Msgf("Ошибка при чтении конфигурационного файла %s", err.Error())
 		}
 		err = json.Unmarshal(file, &cfg)
 		if err != nil {
-			log.Fatal().Msgf("Ошибка при разборе конфигурационного файла %s", err.Error())
+			log.Info().Msgf("Ошибка при разборе конфигурационного файла %s", err.Error())
 		}
 	}
 

@@ -25,13 +25,11 @@ func main() {
 
 	log.Info().Msg("Старт агента")
 
-	//confFile := ""
-	//flag.StringVar(&confFile, "c", "", "config file")
-	//flag.Parse()
-	//
-	//cfg := config.ReadConfig(confFile)
+	confFile := ""
+	flag.StringVar(&confFile, "c", "", "config file")
+	flag.Parse()
 
-	var cfg config.Config
+	cfg := config.ReadConfig(confFile)
 
 	flag.StringVar(&cfg.Address, "a", "127.0.0.1:8080", "address in the format host:port")
 	flag.DurationVar(&cfg.ReportInterval.Duration, "r", time.Second*10, "send to server interval in the format 10s")

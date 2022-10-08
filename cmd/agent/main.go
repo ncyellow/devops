@@ -26,6 +26,7 @@ func main() {
 
 	log.Info().Msg("Старт агента")
 
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	var cfg config.Config
 	confEnvFile := os.Getenv("CONFIG")
 	// Сначала смотрим задан ли конфиг в env

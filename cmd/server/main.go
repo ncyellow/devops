@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -25,14 +26,22 @@ func main() {
 
 	log.Info().Msg("Старт сервера")
 
-	confFile := ""
-	flag.StringVar(&confFile, "c", "", "config file")
-	flag.Parse()
-	fileCfg := config.ReadConfig(confFile)
-
-	log.Info().Msgf("Настройки запуска сервера из файла - %#v\n", fileCfg)
-
 	var cfg config.Config
+	confEnvFile := os.Getenv("CONFIG")
+	// Сначала смотрим задан ли конфиг в env
+	if confEnvFile != "" {
+		cfg = config.ReadConfig(confEnvFile)
+	} else {
+		// Раз не задан пытаемся нащупать его в параметрах
+		confFile := flag.String("c", "", "config file")
+		flag.Parse()
+
+		//! Начинаем с меньшего приоритета
+		if *confFile != "" {
+			fmt.Println(*confFile)
+			cfg = config.ReadConfig(*confFile)
+		}
+	}
 
 	flag.StringVar(&cfg.Address, "a", "localhost:8080", "address in the format host:port")
 	flag.DurationVar(&cfg.StoreInterval.Duration, "i", time.Second*300, "store interval in the format 300s")

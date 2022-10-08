@@ -13,6 +13,7 @@ import (
 
 	"github.com/ncyellow/devops/internal/agent/config"
 	"github.com/ncyellow/devops/internal/repository"
+	"github.com/rs/zerolog/log"
 )
 
 // Agent структура для работы агента
@@ -57,12 +58,15 @@ func (collector *Agent) Run() error {
 	wg.Add(1)
 	go RunSender(ctx, collector.Conf, metricChannel, &wg)
 
-	go func() {
-		wg.Wait()
-		close(metricChannel)
-	}()
-
 	<-signalChanel
+	// Отменяем контекст, который останавливает все горутины
 	cancel()
+
+	// Ждем завершения горутин
+	wg.Wait()
+	close(metricChannel)
+
+	log.Info().Msg("Agent Shutdown gracefully")
+
 	return nil
 }

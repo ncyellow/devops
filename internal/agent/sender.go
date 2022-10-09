@@ -36,7 +36,11 @@ func RunSender(ctx context.Context, conf *config.Config, out <-chan []repository
 			SendMetrics(repo.ToMetrics(), urlSingle)
 			// По новой через Batch
 			SendMetricsBatch(repo.ToMetrics(), url, encoder)
-		case metrics := <-out:
+		case metrics, ok := <-out:
+			if !ok {
+				wg.Done()
+				return
+			}
 			for _, metric := range metrics {
 				repo.UpdateMetric(metric)
 			}

@@ -64,6 +64,7 @@ func (collector *Agent) Run() error {
 	//}()
 
 	<-done
+	close(metricChannel)
 	// отменяем контекст для корректной остановки горутин
 	cancel()
 	// ждем корректного завершения

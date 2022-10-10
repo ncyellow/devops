@@ -18,6 +18,10 @@ func TestReadRSAPublicKey(t *testing.T) {
 	publicKey, err = ReadRSAPublicKey("test_data/rsa.nofile")
 	assert.Error(t, err)
 	assert.Nil(t, publicKey)
+
+	publicKey, err = ReadRSAPublicKey("test_data/rsa_with_error.public")
+	assert.Error(t, err, "failed to parse PEM block containing the public key")
+	assert.Nil(t, publicKey)
 }
 
 func TestReadRSAPrivateKey(t *testing.T) {
@@ -32,6 +36,10 @@ func TestReadRSAPrivateKey(t *testing.T) {
 	privateKey, err = ReadRSAPrivateKey("test_data/rsa.nofile")
 	assert.Error(t, err)
 	assert.Nil(t, privateKey)
+
+	privateKey, err = ReadRSAPrivateKey("test_data/rsa_with_error.private")
+	assert.Error(t, err)
+	assert.Nil(t, privateKey, "failed to parse PEM block containing the private key")
 }
 
 func TestEncoderDecoder(t *testing.T) {
@@ -55,4 +63,12 @@ func TestEncoderDecoder(t *testing.T) {
 
 	assert.Equal(t, want, decodeMsg)
 
+	// Отдельно тестируем граничные случаи, когда и кодировщику и декодировщику переданы не корректные ключи
+	encoder, err = NewEncoder("test_data/rsa.private")
+	assert.Error(t, err)
+	assert.Nil(t, encoder)
+
+	decoder, err = NewDecoder("test_data/rsa.public")
+	assert.Error(t, err)
+	assert.Nil(t, decoder)
 }

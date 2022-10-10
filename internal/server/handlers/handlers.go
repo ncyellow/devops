@@ -156,13 +156,6 @@ func (h *Handler) Value() http.HandlerFunc {
 // @Router /update/{metricType}/{metricName}/{metricValue} [post]
 func (h *Handler) Update() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		//! Метод только post
-		if r.Method != http.MethodPost {
-			rw.WriteHeader(http.StatusInternalServerError)
-			rw.Write([]byte("only post method support"))
-			return
-		}
-
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
 		metricValue := chi.URLParam(r, "metricValue")

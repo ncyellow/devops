@@ -58,11 +58,6 @@ func (collector *Agent) Run() error {
 	wg.Add(1)
 	go RunSender(ctx, collector.Conf, metricChannel, &wg)
 
-	//go func() {
-	//	wg.Wait()
-	//	close(metricChannel)
-	//}()
-
 	<-done
 	close(metricChannel)
 	// отменяем контекст для корректной остановки горутин

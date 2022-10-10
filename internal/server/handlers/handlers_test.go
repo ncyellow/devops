@@ -96,6 +96,17 @@ func (suite *HandlersSuite) TestListHandler() {
 			},
 		},
 		{
+			name:        "add gauge metric with incorrect value",
+			request:     "/update/gauge/testGauge/10sa0",
+			requestType: "POST",
+			contentType: "text/plain",
+			body:        nil,
+			want: want{
+				statusCode: http.StatusBadRequest,
+				body:       "incorrect metric value",
+			},
+		},
+		{
 			name:        "add counter metric with correct data",
 			request:     "/update/counter/testCounter/100",
 			requestType: "POST",
@@ -104,6 +115,28 @@ func (suite *HandlersSuite) TestListHandler() {
 			want: want{
 				statusCode: http.StatusOK,
 				body:       "ok",
+			},
+		},
+		{
+			name:        "add counter metric with incorrect value",
+			request:     "/update/counter/testCounter/1dd00",
+			requestType: "POST",
+			contentType: "text/plain",
+			body:        nil,
+			want: want{
+				statusCode: http.StatusBadRequest,
+				body:       "incorrect metric value",
+			},
+		},
+		{
+			name:        "add metric with incorrect type",
+			request:     "/update/unknown/testUnknown/100",
+			requestType: "POST",
+			contentType: "text/plain",
+			body:        nil,
+			want: want{
+				statusCode: http.StatusNotImplemented,
+				body:       "incorrect metric type",
 			},
 		},
 		{
@@ -256,6 +289,17 @@ func (suite *HandlersSuite) TestUpdateHandler() {
 				body:       fmt.Sprintf("%.3f", 100.0),
 			},
 		},
+		{
+			name:        "get correct gauge value",
+			request:     "/value/unknown/testGauge",
+			requestType: "GET",
+			contentType: "text/plain",
+			body:        nil,
+			want: want{
+				statusCode: http.StatusNotFound,
+				body:       "not found",
+			},
+		},
 	}
 	suite.runTableTests(testData)
 }
@@ -272,6 +316,39 @@ func (suite *HandlersSuite) TestUpdateValueJSONHandler() {
 			want: want{
 				statusCode: http.StatusOK,
 				body:       "ok",
+			},
+		},
+		{
+			name:        "set gauge with GET",
+			request:     "/update/",
+			requestType: "GET",
+			contentType: "application/json",
+			body:        []byte(`{"id":"jsonGauge","type":"gauge","value": 111}`),
+			want: want{
+				statusCode: http.StatusMethodNotAllowed,
+				body:       "",
+			},
+		}, {
+			name:        "set gauge with incorrect value",
+			request:     "/update/",
+			requestType: "POST",
+			contentType: "application/json",
+			body:        []byte(`{"id":"jsonGauge","type":"gauge","value": "incorrect value"}`),
+			want: want{
+				statusCode: http.StatusInternalServerError,
+				body:       "invalid deserialization",
+			},
+		},
+
+		{
+			name:        "set gauge with json - bad json",
+			request:     "/update/",
+			requestType: "POST",
+			contentType: "application/json",
+			body:        []byte(`{"id":"jsonGauge""type":"gauge""value": 111}`),
+			want: want{
+				statusCode: http.StatusInternalServerError,
+				body:       "invalid deserialization",
 			},
 		},
 		{
@@ -305,6 +382,50 @@ func (suite *HandlersSuite) TestUpdateValueJSONHandler() {
 			want: want{
 				statusCode: http.StatusOK,
 				body:       `{"id":"jsonCounter","type":"counter","delta":123}`,
+			},
+		},
+		{
+			name:        "value - bad json",
+			request:     "/value/",
+			requestType: "POST",
+			contentType: "application/json",
+			body:        []byte(`{"id":"jsonGauge""type":"gauge"}`),
+			want: want{
+				statusCode: http.StatusInternalServerError,
+				body:       `invalid deserialization`,
+			},
+		},
+		{
+			name:        "test get counter with bad contentType",
+			request:     "/value/",
+			requestType: "POST",
+			contentType: "text/plain",
+			body:        []byte(`{"id":"jsonCounter","type":"counter"}`),
+			want: want{
+				statusCode: http.StatusInternalServerError,
+				body:       `content type not support`,
+			},
+		},
+		{
+			name:        "update gauge with bad contentType",
+			request:     "/update/",
+			requestType: "POST",
+			contentType: "text/plain",
+			body:        []byte(`{"id":"jsonGauge","type":"gauge","value": 111}`),
+			want: want{
+				statusCode: http.StatusInternalServerError,
+				body:       "content type not support",
+			},
+		},
+		{
+			name:        "get counter that doesn't exists",
+			request:     "/value/",
+			requestType: "POST",
+			contentType: "application/json",
+			body:        []byte(`{"id":"notFoundCounter","type":"counter"}`),
+			want: want{
+				statusCode: http.StatusNotFound,
+				body:       `not found`,
 			},
 		},
 	}
@@ -358,6 +479,18 @@ func (suite *HandlersSuite) TestUpdateValuesJSONHandler() {
 			want: want{
 				statusCode: http.StatusInternalServerError,
 				body:       "invalid deserialization",
+			},
+		},
+		{
+			name:        "set gauge and counter with json",
+			request:     "/updates/",
+			requestType: "POST",
+			contentType: "text/plain",
+			body: []byte(`[{"id":"jsonGauge","type":"gauge","value": 111},
+							      {"id":"jsonCounter","type":"counter","delta": 123}]`),
+			want: want{
+				statusCode: http.StatusInternalServerError,
+				body:       "content type not support",
 			},
 		},
 	}

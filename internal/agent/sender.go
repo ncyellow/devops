@@ -80,12 +80,13 @@ func SendMetricsBatch(dataSource []repository.Metrics, url string, encoder *rsa.
 
 // SendMetrics отправляет метрики на указанный url
 func SendMetrics(dataSource []repository.Metrics, url string) {
+	client := http.Client{Timeout: 100 * time.Millisecond}
 	for _, metric := range dataSource {
 		buf, err := json.Marshal(metric)
 		if err != nil {
 			log.Fatal().Err(err)
 		}
-		resp, err := http.Post(url, "application/json", bytes.NewBuffer(buf))
+		resp, err := client.Post(url, "application/json", bytes.NewBuffer(buf))
 		if err != nil {
 			log.Info().Msgf("%s", err.Error())
 			continue

@@ -2,13 +2,14 @@ package agent
 
 import (
 	"context"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/ncyellow/devops/internal/agent/config"
 	"github.com/ncyellow/devops/internal/genconfig"
 	"github.com/ncyellow/devops/internal/repository"
 	"github.com/stretchr/testify/assert"
-	"sync"
-	"testing"
-	"time"
 )
 
 func TestCollector(t *testing.T) {
@@ -31,8 +32,8 @@ func TestRunCollector(t *testing.T) {
 			Address:   "Test",
 			SecretKey: "Test",
 		},
-		PollInterval:   time.Second * 1,
-		ReportInterval: time.Second * 1,
+		PollInterval:   genconfig.Duration{Duration: time.Second * 1},
+		ReportInterval: genconfig.Duration{Duration: time.Second * 1},
 	}
 	collector := Collector{
 		Conf:   aconf.GeneralCfg(),

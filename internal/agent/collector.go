@@ -39,7 +39,7 @@ func (c *Collector) ToMetrics() []repository.Metrics {
 // RunCollector запускает цикл по опросу метрик и отправки их в канал in
 func RunCollector(ctx context.Context, conf *config.Config, collector *Collector, in chan<- []repository.Metrics, wg *sync.WaitGroup) {
 
-	tickerPoll := time.NewTicker(conf.PollInterval)
+	tickerPoll := time.NewTicker(conf.PollInterval.Duration)
 	defer tickerPoll.Stop()
 
 	for {

@@ -31,9 +31,7 @@ func (m *FileStorageSaver) Close() {
 }
 
 func (m *FileStorageSaver) Load() error {
-	if m.conf.Restore {
-		RestoreFromFile(m.conf.StoreFile, m.repo)
-	}
+	RestoreFromFile(m.conf.StoreFile, m.repo)
 	return nil
 }
 

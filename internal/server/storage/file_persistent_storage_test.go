@@ -3,8 +3,10 @@ package storage
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/ncyellow/devops/internal/repository"
 	"github.com/ncyellow/devops/internal/server/config"
+	"github.com/rs/zerolog/log"
 
 	"os"
 	"testing"
@@ -47,9 +49,16 @@ func TestSaveRestoreFromFile(t *testing.T) {
 }
 
 func TestSaveToFile(t *testing.T) {
+	fileName := "file doesn't not exists"
 	conf := config.Config{}
 	repo := repository.NewRepository(conf.GeneralCfg())
-	assert.NoError(t, SaveToFile("file doesn't not exists", repo))
+	assert.NoError(t, SaveToFile(fileName, repo))
+
+	err := os.Remove(fileName)
+	if err != nil {
+		log.Info().Msg("по неведомым причинам файл удалить не удалось. проверьте права")
+	}
+
 }
 
 func TestNewFileStorage(t *testing.T) {

@@ -5,6 +5,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"os/signal"
@@ -32,21 +33,44 @@ func (s Server) RunServer() {
 		log.Info().Msg("cant create NewPgStorage")
 	}
 	defer saver.Close()
-
+	// Поднимаем текущие данные по метриками
 	saver.Load()
 
-	r := handlers.NewRouter(repo, s.Conf, saver)
+	srv := http.Server{
+		Addr:    s.Conf.Address,
+		Handler: handlers.NewRouter(repo, s.Conf, saver),
+	}
 
 	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(done,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
+
+	idleConnsClosed := make(chan struct{})
 
 	go func() {
-		if err := http.ListenAndServe(s.Conf.Address, r); err != nil && err != http.ErrServerClosed {
+		// ждем прерывание
+		<-done
+		// гасим сервер
+		if err := srv.Shutdown(context.Background()); err != nil {
+			// ошибки закрытия Listener
+			log.Info().Msgf("HTTP server Shutdown: %v", err)
+		}
+		// сообщаем основному потоку,
+		// что все сетевые соединения обработаны и закрыты
+		close(idleConnsClosed)
+	}()
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Error().Msgf("listen: %s", err)
 		}
 	}()
 
-	go storage.RunStorageSaver(saver, s.Conf.StoreInterval)
+	go storage.RunStorageSaver(saver, s.Conf.StoreInterval.Duration)
 
-	<-done
+	<-idleConnsClosed
+	log.Info().Msg("Server Shutdown gracefully")
+
 }

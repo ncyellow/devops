@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -25,13 +26,30 @@ func main() {
 
 	log.Info().Msg("Старт сервера")
 
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	var cfg config.Config
+	confEnvFile := os.Getenv("CONFIG")
+	// Сначала смотрим задан ли конфиг в env
+	if confEnvFile != "" {
+		cfg = config.ReadConfig(confEnvFile)
+	} else {
+		// Раз не задан пытаемся нащупать его в параметрах
+		confFile := flag.String("c", "", "config file")
+		flag.Parse()
+
+		//! Начинаем с меньшего приоритета
+		if *confFile != "" {
+			fmt.Println(*confFile)
+			cfg = config.ReadConfig(*confFile)
+		}
+	}
 
 	flag.StringVar(&cfg.Address, "a", "localhost:8080", "address in the format host:port")
-	flag.DurationVar(&cfg.StoreInterval, "i", time.Second*300, "store interval in the format 300s")
+	flag.DurationVar(&cfg.StoreInterval.Duration, "i", time.Second*300, "store interval in the format 300s")
 	flag.BoolVar(&cfg.Restore, "r", true, "restore from file. true if needed")
 	flag.StringVar(&cfg.StoreFile, "f", "/tmp/devops-metrics-db.json", "filename that used for save metrics state")
 	flag.StringVar(&cfg.SecretKey, "k", "", "key for hash metrics")
+	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "private server crypto key")
 	flag.StringVar(&cfg.DatabaseConn, "d", "", "connection string to postgresql")
 
 	// Сначала парсим командную строку

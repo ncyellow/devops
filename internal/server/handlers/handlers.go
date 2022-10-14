@@ -50,6 +50,7 @@ func NewRouter(repo repository.Repository, conf *config.Config, pStore storage.P
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(middlewares.EncoderGZIP)
+	r.Use(middlewares.IPBlock(conf.TrustedSubNet))
 	r.Mount("/debug", middleware.Profiler())
 
 	var decoder *rsa.Decoder

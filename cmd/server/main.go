@@ -51,6 +51,7 @@ func main() {
 	flag.StringVar(&cfg.SecretKey, "k", "", "key for hash metrics")
 	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "private server crypto key")
 	flag.StringVar(&cfg.DatabaseConn, "d", "", "connection string to postgresql")
+	flag.StringVar(&cfg.TrustedSubNet, "t", "", "trusted subnet cidr")
 
 	// Сначала парсим командную строку
 	flag.Parse()

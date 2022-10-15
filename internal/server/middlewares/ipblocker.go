@@ -26,11 +26,11 @@ func NewIPBlocker(cidr string) *IPBlocker {
 	}
 }
 
-func (b *IPBlocker) IsAllowIP(realIp string) bool {
+func (b *IPBlocker) IsAllowIP(realIP string) bool {
 	if b.cidr == nil {
 		return true
 	}
-	clientIP := net.ParseIP(realIp)
+	clientIP := net.ParseIP(realIP)
 	return b.cidr.Contains(clientIP)
 }
 
@@ -43,12 +43,11 @@ func (b *IPBlocker) Handler(next http.Handler) http.Handler {
 		}
 
 		// проверяем, что у клиента передан заголовок gzip-сжатие
-		if !b.IsAllowIP(r.Header.Get("X-Real-IP")) {
+		if b.IsAllowIP(r.Header.Get("X-Real-IP")) {
 			next.ServeHTTP(w, r)
 			return
 		}
 		w.WriteHeader(http.StatusForbidden)
-		return
 	})
 }
 

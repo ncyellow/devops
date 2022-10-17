@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 
+	"github.com/ncyellow/devops/internal/crypto/rsa"
 	pb "github.com/ncyellow/devops/internal/grpc/proto"
 	"github.com/ncyellow/devops/internal/repository"
 	"github.com/ncyellow/devops/internal/server/config"
@@ -11,11 +12,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// MetricsServer Реализуем все базовые возможности http сервера
+// - установить значение списка метрик
+// - прочитать значение метрики
+// - получить html
+// - пинг
 type MetricsServer struct {
 	pb.UnimplementedMetricsServer
-	conf   *config.Config
-	repo   repository.Repository
-	pStore storage.PersistentStorage
+	conf    *config.Config
+	repo    repository.Repository
+	pStore  storage.PersistentStorage
+	decoder *rsa.Decoder
 }
 
 func NewMetricServer(repo repository.Repository, conf *config.Config, pStore storage.PersistentStorage) *MetricsServer {

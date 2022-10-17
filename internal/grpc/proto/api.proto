@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "grpc/proto";
+
+enum Type {
+  Counter = 0;
+  Gauge = 1;
+}
+
+message CounterMetric {
+  string name = 1;
+  int64 value = 2;
+}
+
+message GaugeMetric {
+  string name = 1;
+  double value = 2;
+}
+
+message AddMetricRequest {
+  repeated CounterMetric counters = 1;
+  repeated GaugeMetric gauges = 2;
+}
+
+message AddMetricResponse {
+  string error = 1; // ошибка
+}
+
+message ListMetricsRequest {
+}
+
+message ListMetricResponse {
+  string error = 1; // ошибка
+  string html = 2;
+}
+
+message GetMetricRequest {
+  Type type = 1;
+  string name = 2;
+}
+
+message GetMetricResponse {
+  optional CounterMetric counter = 1;
+  optional GaugeMetric gauge = 2;
+  string error = 3;
+}
+
+message PingRequest {
+}
+
+message PingResponse {
+  string error = 1;
+}
+
+service Metrics {
+  rpc AddMetric(AddMetricRequest) returns (AddMetricResponse);
+  rpc GetMetric(GetMetricRequest) returns (GetMetricResponse);
+  rpc ListMetrics(ListMetricsRequest) returns (ListMetricResponse);
+  rpc Ping(PingRequest) returns (PingResponse);
+}

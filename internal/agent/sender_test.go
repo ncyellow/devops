@@ -28,9 +28,16 @@ func BenchmarkSendMetricsBatch(b *testing.B) {
 		})
 	}
 
+	sender := HTTPSender{
+		conf:      &config.Config{},
+		urlBatch:  "",
+		urlSingle: "http://unknown/updates/",
+		encoder:   nil,
+	}
+
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		SendMetricsBatch(metrics, "http://unknown/updates/", nil)
+		sender.SendMetricsBatch(metrics)
 	}
 }
 

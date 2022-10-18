@@ -1,3 +1,4 @@
+// Package api - реализует апи grpc сервера.
 package api
 
 import (

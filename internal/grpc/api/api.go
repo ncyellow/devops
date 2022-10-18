@@ -78,7 +78,7 @@ func (ms *MetricsServer) GetMetric(ctx context.Context, req *pb.GetMetricRequest
 			Value: val,
 		}
 	}
-	return nil, status.Errorf(codes.NotFound, "not found")
+	return &response, nil
 }
 
 func (ms *MetricsServer) ListMetrics(context.Context, *pb.ListMetricsRequest) (*pb.ListMetricResponse, error) {

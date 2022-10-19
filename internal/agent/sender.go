@@ -1,7 +1,10 @@
 package agent
 
 import (
+	"context"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/ncyellow/devops/internal/agent/config"
 	"github.com/ncyellow/devops/internal/crypto/rsa"
@@ -45,5 +48,38 @@ func CreateSender(conf *config.Config) Sender {
 		conf:   conf,
 		conn:   conn,
 		client: client,
+	}
+}
+
+// RunSender запускает цикл по обработке таймера отправки метрик из канала out на сервер
+func RunSender(ctx context.Context, conf *config.Config, out <-chan []repository.Metrics, wg *sync.WaitGroup) {
+
+	repo := repository.NewRepository(conf.GeneralCfg())
+
+	sender := CreateSender(conf)
+	defer sender.Close()
+
+	tickerReport := time.NewTicker(conf.ReportInterval.Duration)
+	defer tickerReport.Stop()
+
+	for {
+		select {
+		case <-tickerReport.C:
+			// Две отправки для совместимости со старой версией, по старому протоколу
+			sender.SendMetrics(repo.ToMetrics())
+			// По новой через Batch
+			sender.SendMetricsBatch(repo.ToMetrics())
+		case metrics, ok := <-out:
+			if !ok {
+				wg.Done()
+				return
+			}
+			for _, metric := range metrics {
+				repo.UpdateMetric(metric)
+			}
+		case <-ctx.Done():
+			wg.Done()
+			return
+		}
 	}
 }

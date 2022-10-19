@@ -22,7 +22,7 @@ type GRPCServer struct {
 
 // RunServer блокирующая функция запуска сервера.
 // После запуска встает в ожидание os.Interrupt, syscall.SIGINT, syscall.SIGTERM
-func (s GRPCServer) RunServer() {
+func (s *GRPCServer) RunServer() {
 	repo := repository.NewRepository(s.Conf.GeneralCfg())
 
 	saver, err := storage.CreateStorage(s.Conf, repo)
@@ -33,7 +33,7 @@ func (s GRPCServer) RunServer() {
 	// Поднимаем текущие данные по метриками
 	saver.Load()
 
-	listen, err := net.Listen("tcp", ":3200")
+	listen, err := net.Listen("tcp", s.Conf.GRPCAddress)
 	if err != nil {
 		log.Fatal().Err(err)
 	}

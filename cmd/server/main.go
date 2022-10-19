@@ -64,7 +64,6 @@ func main() {
 
 	log.Info().Msgf("Настройки запуска сервера - %#v\n", cfg)
 
-	server := server.Server{Conf: &cfg}
-	//server := server.GRPCServer{Conf: &cfg}
+	server := server.CreateServer(&cfg)
 	server.RunServer()
 }

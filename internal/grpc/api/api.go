@@ -6,6 +6,7 @@ import (
 
 	"github.com/ncyellow/devops/internal/crypto/rsa"
 	pb "github.com/ncyellow/devops/internal/grpc/proto"
+	"github.com/ncyellow/devops/internal/hash"
 	"github.com/ncyellow/devops/internal/repository"
 	"github.com/ncyellow/devops/internal/server/config"
 	"github.com/ncyellow/devops/internal/server/storage"
@@ -36,23 +37,43 @@ func NewMetricServer(repo repository.Repository, conf *config.Config, pStore sto
 
 func (ms *MetricsServer) AddMetric(ctx context.Context, req *pb.AddMetricRequest) (*pb.AddMetricResponse, error) {
 	var response pb.AddMetricResponse
+
+	encodeFunc := hash.CreateEncodeFunc(ms.conf.SecretKey)
 	counters := req.GetCounters()
 	for _, metric := range counters {
 		value := metric.GetValue()
-		ms.repo.UpdateMetric(repository.Metrics{
+		counter := repository.Metrics{
 			ID:    metric.GetName(),
 			MType: repository.Counter,
 			Delta: &value,
-		})
+		}
+		if metric.Hash != nil {
+			counter.Hash = *metric.Hash
+		}
+
+		ok := hash.CheckSign(ms.conf.SecretKey, counter.Hash, counter.CalcHash(encodeFunc))
+		if !ok {
+			return nil, status.Error(codes.InvalidArgument, "incorrect metric sign")
+		}
+		ms.repo.UpdateMetric(counter)
 	}
 	gauges := req.GetGauges()
 	for _, metric := range gauges {
 		delta := metric.GetValue()
-		ms.repo.UpdateMetric(repository.Metrics{
+		gauge := repository.Metrics{
 			ID:    metric.GetName(),
 			MType: repository.Counter,
 			Value: &delta,
-		})
+		}
+		if metric.Hash != nil {
+			gauge.Hash = *metric.Hash
+		}
+
+		ok := hash.CheckSign(ms.conf.SecretKey, gauge.Hash, gauge.CalcHash(encodeFunc))
+		if !ok {
+			return nil, status.Error(codes.InvalidArgument, "incorrect metric sign")
+		}
+		ms.repo.UpdateMetric(gauge)
 	}
 	return &response, nil
 }

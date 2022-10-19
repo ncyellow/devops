@@ -80,7 +80,8 @@ func (s *HTTPSender) Close() {
 }
 
 func CreateSender(conf *config.Config) Sender {
-	if conf.Address != "" {
+	// По дефолту у нас http, только если задан GRPCAddress entrypoint, мы переходим на grpc
+	if conf.GRPCAddress == "" {
 		encoder, err := rsa.NewEncoder(conf.CryptoKey)
 		if err != nil {
 			log.Info().Err(err)
@@ -124,16 +125,24 @@ func (g *GRPCSender) SendMetricsBatch(dataSource []repository.Metrics) {
 	var counters []*pb.CounterMetric
 	var gauges []*pb.GaugeMetric
 	for _, metric := range dataSource {
+		// делаем так потому что hash опциональное поле и мы будем передавать указатель и потому отдельная переменная
+		var hash string
+		if metric.Hash != "" {
+			hash = metric.Hash
+		}
+
 		switch metric.MType {
 		case repository.Counter:
 			counters = append(counters, &pb.CounterMetric{
 				Name:  metric.ID,
 				Value: *metric.Delta,
+				Hash:  &hash,
 			})
 		case repository.Gauge:
 			gauges = append(gauges, &pb.GaugeMetric{
 				Name:  metric.ID,
 				Value: *metric.Value,
+				Hash:  &hash,
 			})
 		}
 	}

@@ -4,73 +4,19 @@
 // server.RunServer()
 package server
 
-import (
-	"context"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
+import "github.com/ncyellow/devops/internal/server/config"
 
-	"github.com/ncyellow/devops/internal/repository"
-	"github.com/ncyellow/devops/internal/server/config"
-	"github.com/ncyellow/devops/internal/server/handlers"
-	"github.com/ncyellow/devops/internal/server/storage"
-	"github.com/rs/zerolog/log"
-)
-
-// Server структура сервера
-type Server struct {
-	Conf *config.Config
+type Server interface {
+	RunServer()
 }
 
-// RunServer блокирующая функция запуска сервера.
-// После запуска встает в ожидание os.Interrupt, syscall.SIGINT, syscall.SIGTERM
-func (s Server) RunServer() {
-	repo := repository.NewRepository(s.Conf.GeneralCfg())
-
-	saver, err := storage.CreateStorage(s.Conf, repo)
-	if err != nil {
-		log.Info().Msg("cant create NewPgStorage")
-	}
-	defer saver.Close()
-	// Поднимаем текущие данные по метриками
-	saver.Load()
-
-	srv := http.Server{
-		Addr:    s.Conf.Address,
-		Handler: handlers.NewRouter(repo, s.Conf, saver),
-	}
-
-	done := make(chan os.Signal, 1)
-	signal.Notify(done,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
-
-	idleConnsClosed := make(chan struct{})
-
-	go func() {
-		// ждем прерывание
-		<-done
-		// гасим сервер
-		if err := srv.Shutdown(context.Background()); err != nil {
-			// ошибки закрытия Listener
-			log.Info().Msgf("HTTP server Shutdown: %v", err)
+func CreateServer(conf *config.Config) Server {
+	if conf.GRPCAddress != "" {
+		return &GRPCServer{
+			Conf: conf,
 		}
-		// сообщаем основному потоку,
-		// что все сетевые соединения обработаны и закрыты
-		close(idleConnsClosed)
-	}()
-
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Error().Msgf("listen: %s", err)
-		}
-	}()
-
-	go storage.RunStorageSaver(saver, s.Conf.StoreInterval.Duration)
-
-	<-idleConnsClosed
-	log.Info().Msg("Server Shutdown gracefully")
-
+	}
+	return &HTTPServer{
+		Conf: conf,
+	}
 }

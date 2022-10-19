@@ -12,11 +12,13 @@ enum Type {
 message CounterMetric {
   string name = 1;
   int64 value = 2;
+  optional string hash = 3;
 }
 
 message GaugeMetric {
   string name = 1;
   double value = 2;
+  optional string hash = 3;
 }
 
 message AddMetricRequest {

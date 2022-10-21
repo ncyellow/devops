@@ -49,7 +49,6 @@ func main() {
 	flag.DurationVar(&cfg.PollInterval.Duration, "p", time.Second*2, "polling metrics interval in the format 2s")
 	flag.StringVar(&cfg.SecretKey, "k", "", "key for hash metrics")
 	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "public agent crypto key")
-	flag.DurationVar(&cfg.ReportInterval.Duration, "r", time.Second*3, "send to server interval in the format 10s")
 
 	// Сначала аргументы командной строки
 	flag.Parse()

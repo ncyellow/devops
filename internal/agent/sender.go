@@ -23,32 +23,32 @@ type Sender interface {
 
 func CreateSender(conf *config.Config) Sender {
 	// По дефолту у нас http, только если задан GRPCAddress entrypoint, мы переходим на grpc
-	if conf.GRPCAddress == "" {
-		encoder, err := rsa.NewEncoder(conf.CryptoKey)
+	if conf.GRPCAddress != "" {
+		// устанавливаем соединение с сервером
+		conn, err := grpc.Dial(conf.GRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
-			log.Info().Err(err)
+			log.Fatal().Err(err)
 		}
-		return &HTTPSender{
-			conf:      conf,
-			urlBatch:  fmt.Sprintf("http://%s/updates/", conf.Address),
-			urlSingle: fmt.Sprintf("http://%s/update/", conf.Address),
-			encoder:   encoder,
+		// получаем переменную интерфейсного типа UsersClient,
+		// через которую будем отправлять сообщения
+		client := pb.NewMetricsClient(conn)
+		return &GRPCSender{
+			conf:   conf,
+			conn:   conn,
+			client: client,
 		}
+	}
+	encoder, err := rsa.NewEncoder(conf.CryptoKey)
+	if err != nil {
+		log.Info().Err(err)
+	}
+	return &HTTPSender{
+		conf:      conf,
+		urlBatch:  fmt.Sprintf("http://%s/updates/", conf.Address),
+		urlSingle: fmt.Sprintf("http://%s/update/", conf.Address),
+		encoder:   encoder,
 	}
 
-	// устанавливаем соединение с сервером
-	conn, err := grpc.Dial(conf.GRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatal().Err(err)
-	}
-	// получаем переменную интерфейсного типа UsersClient,
-	// через которую будем отправлять сообщения
-	client := pb.NewMetricsClient(conn)
-	return &GRPCSender{
-		conf:   conf,
-		conn:   conn,
-		client: client,
-	}
 }
 
 // RunSender запускает цикл по обработке таймера отправки метрик из канала out на сервер

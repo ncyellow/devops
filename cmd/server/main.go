@@ -44,6 +44,7 @@ func main() {
 		}
 	}
 
+	flag.StringVar(&cfg.GRPCAddress, "grpc", "", "grpc endpoint")
 	flag.StringVar(&cfg.Address, "a", "localhost:8080", "address in the format host:port")
 	flag.DurationVar(&cfg.StoreInterval.Duration, "i", time.Second*300, "store interval in the format 300s")
 	flag.BoolVar(&cfg.Restore, "r", true, "restore from file. true if needed")

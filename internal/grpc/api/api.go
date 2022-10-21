@@ -37,7 +37,6 @@ func NewMetricServer(repo repository.Repository, conf *config.Config, pStore sto
 
 func (ms *MetricsServer) AddMetric(ctx context.Context, req *pb.AddMetricRequest) (*pb.AddMetricResponse, error) {
 	var response pb.AddMetricResponse
-
 	encodeFunc := hash.CreateEncodeFunc(ms.conf.SecretKey)
 	counters := req.GetCounters()
 	for _, metric := range counters {
@@ -62,7 +61,7 @@ func (ms *MetricsServer) AddMetric(ctx context.Context, req *pb.AddMetricRequest
 		delta := metric.GetValue()
 		gauge := repository.Metrics{
 			ID:    metric.GetName(),
-			MType: repository.Counter,
+			MType: repository.Gauge,
 			Value: &delta,
 		}
 		if metric.Hash != nil {

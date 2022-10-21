@@ -54,6 +54,7 @@ func (g *GRPCSender) SendMetricsBatch(dataSource []repository.Metrics) {
 	})
 	if err != nil {
 		log.Info().Msgf("%s", err.Error())
+		return
 	}
 	if resp.Error != "" {
 		log.Info().Msg(resp.Error)

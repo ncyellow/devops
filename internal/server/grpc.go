@@ -10,6 +10,7 @@ import (
 	pb "github.com/ncyellow/devops/internal/grpc/proto"
 	"github.com/ncyellow/devops/internal/repository"
 	"github.com/ncyellow/devops/internal/server/config"
+	"github.com/ncyellow/devops/internal/server/middlewares"
 	"github.com/ncyellow/devops/internal/server/storage"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -38,7 +39,7 @@ func (s *GRPCServer) RunServer() {
 		log.Fatal().Err(err)
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(middlewares.IPBlockInterceptor(s.Conf.TrustedSubNet)))
 	// регистрируем сервис
 	pb.RegisterMetricsServer(grpcServer, api.NewMetricServer(repo, s.Conf, saver))
 

@@ -37,7 +37,7 @@ func CreateSender(conf *config.Config) Sender {
 	}
 
 	// устанавливаем соединение с сервером
-	conn, err := grpc.Dial(":3200", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(conf.GRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal().Err(err)
 	}

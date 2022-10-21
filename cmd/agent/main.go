@@ -43,12 +43,13 @@ func main() {
 			cfg = config.ReadConfig(*confFile)
 		}
 	}
-
+	flag.StringVar(&cfg.GRPCAddress, "grpc", "", "grpc endpoint")
 	flag.StringVar(&cfg.Address, "a", "127.0.0.1:8080", "address in the format host:port")
 	flag.DurationVar(&cfg.ReportInterval.Duration, "r", time.Second*10, "send to server interval in the format 10s")
 	flag.DurationVar(&cfg.PollInterval.Duration, "p", time.Second*2, "polling metrics interval in the format 2s")
 	flag.StringVar(&cfg.SecretKey, "k", "", "key for hash metrics")
 	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "public agent crypto key")
+	flag.DurationVar(&cfg.ReportInterval.Duration, "r", time.Second*3, "send to server interval in the format 10s")
 
 	// Сначала аргументы командной строки
 	flag.Parse()
@@ -58,6 +59,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err)
 	}
+
 	log.Info().Msgf("Настройки запуска агента - %#v\n", cfg)
 
 	collector := agent.Agent{Conf: &cfg}

@@ -36,6 +36,9 @@ func (b *IPBlocker) IsAllowIP(realIP string) bool {
 	if b.cidr == nil {
 		return true
 	}
+	if realIP == "" {
+		return true
+	}
 	clientIP := net.ParseIP(realIP)
 	return b.cidr.Contains(clientIP)
 }
@@ -54,6 +57,7 @@ func (b *IPBlocker) Handler(next http.Handler) http.Handler {
 			return
 		}
 		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("IP was been blocked"))
 	})
 }
 

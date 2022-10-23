@@ -7,7 +7,7 @@ import (
 	"syscall"
 
 	"github.com/ncyellow/devops/internal/grpc/api"
-	pb "github.com/ncyellow/devops/internal/grpc/proto"
+	"github.com/ncyellow/devops/internal/grpc/proto"
 	"github.com/ncyellow/devops/internal/repository"
 	"github.com/ncyellow/devops/internal/server/config"
 	"github.com/ncyellow/devops/internal/server/middlewares"
@@ -41,7 +41,7 @@ func (s *GRPCServer) RunServer() {
 
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(middlewares.IPBlockInterceptor(s.Conf.TrustedSubNet)))
 	// регистрируем сервис
-	pb.RegisterMetricsServer(grpcServer, api.NewMetricServer(repo, s.Conf, saver))
+	proto.RegisterMetricsServer(grpcServer, api.NewMetricServer(repo, s.Conf, saver))
 
 	defer func() {
 		// гасим сервер через GracefulStop

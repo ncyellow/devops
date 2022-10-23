@@ -8,9 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/ncyellow/devops/internal/genconfig"
 	"github.com/ncyellow/devops/internal/repository"
 	"github.com/ncyellow/devops/internal/server/config"
-
 	"github.com/ncyellow/devops/internal/server/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,13 +38,16 @@ type HandlersSuite struct {
 // SetupSuite перед началом теста стартуем новый сервер httptest.Server делаем так, чтобы тестировать каждый
 // handler отдельно и не сливать все тесты в один
 func (suite *HandlersSuite) SetupTest() {
-	conf := config.Config{}
+	conf := config.Config{
+		GeneralConfig: genconfig.GeneralConfig{
+			CryptoKey: "unknown_rsa",
+		},
+	}
 	repo := repository.NewRepository(conf.GeneralCfg())
 	//! Это пустой вариант хранилища без состояние. Ошибок нет
 	pStore, _ := storage.NewFakeStorage()
 
 	r := NewRouter(repo, &conf, pStore)
-
 	suite.ts = httptest.NewServer(r)
 }
 

@@ -156,6 +156,17 @@ func (s *MapRepository) FromMetrics(metrics []Metrics) {
 	}
 }
 
+// Clear - очищаем все метрики репозитория
+func (s *MapRepository) Clear() {
+	s.gaugesLock.Lock()
+	s.gauges = make(map[string]float64)
+	s.gaugesLock.Unlock()
+
+	s.countersLock.Lock()
+	s.counters = make(map[string]int64)
+	s.countersLock.Unlock()
+}
+
 // MarshalJSON - реализация интерфейса Marshaler
 func (s *MapRepository) MarshalJSON() ([]byte, error) {
 	metrics := s.ToMetrics()

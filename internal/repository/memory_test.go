@@ -211,6 +211,20 @@ func TestMarshalJSON(t *testing.T) {
 	assert.JSONEq(t, string(jsRepo), `[{"id":"testGaugeMetric","type":"gauge","value":100},{"id":"testCounterMetric","type":"counter","delta":120}]`)
 }
 
+// TestMapRepositoryClear проверяем очистку репозитория
+func TestMapRepositoryClear(t *testing.T) {
+	t.Parallel()
+
+	repo := NewRepository(&genconfig.GeneralConfig{})
+
+	repo.UpdateGauge("testGaugeMetric", 100)
+	repo.UpdateCounter("testCounterMetric", 120)
+	assert.Equal(t, len(repo.ToMetrics()), 2)
+
+	repo.Clear()
+	assert.Equal(t, len(repo.ToMetrics()), 0)
+}
+
 // TestUnmarshalJSON тест десериализации из json
 func TestUnmarshalJSON(t *testing.T) {
 	t.Parallel()

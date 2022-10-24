@@ -63,4 +63,7 @@ type Repository interface {
 
 	// ToMetrics экспорт данных репозитория в []Metrics
 	ToMetrics() []Metrics
+
+	// Clear Очистка репозитория
+	Clear()
 }

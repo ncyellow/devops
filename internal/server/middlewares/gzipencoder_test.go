@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Проверяем основные варианты. Включена / выключена поддержка gzip
 func TestEncoderGZIP(t *testing.T) {
 
 	tests := map[string]struct {

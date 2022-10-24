@@ -1,7 +1,5 @@
 // Package server содержит кодовую базу сервера.
-// Конкретно данный файл содержит основной код запуска сервера:
-// server := server.Server{Conf: &cfg}
-// server.RunServer()
+// Содержится имплементация http сервера
 package server
 
 import (

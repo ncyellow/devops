@@ -11,10 +11,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// IPBlocker - интерфейс для работы блокировки по IP =)
 type IPBlocker struct {
 	cidr *net.IPNet
 }
 
+// NewIPBlocker - конструктор проверяет корректность cidr. Иначе блок по ip не работает
 func NewIPBlocker(cidr string) *IPBlocker {
 	if cidr == "" {
 		return &IPBlocker{
@@ -32,6 +34,7 @@ func NewIPBlocker(cidr string) *IPBlocker {
 	}
 }
 
+// IsAllowIP - проверяет разрешен ли realIP если нет будет false
 func (b *IPBlocker) IsAllowIP(realIP string) bool {
 	if b.cidr == nil {
 		return true
@@ -43,7 +46,7 @@ func (b *IPBlocker) IsAllowIP(realIP string) bool {
 	return b.cidr.Contains(clientIP)
 }
 
-// Handler middleware для фильтрации IP адресов
+// Handler обработчик для подготовки middleware для фильтрации IP адресов
 func (b *IPBlocker) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if b.cidr == nil {
@@ -61,11 +64,13 @@ func (b *IPBlocker) Handler(next http.Handler) http.Handler {
 	})
 }
 
+// IPBlock - middleware для http сервера
 func IPBlock(cidr string) func(next http.Handler) http.Handler {
 	blocker := NewIPBlocker(cidr)
 	return blocker.Handler
 }
 
+// unaryInterceptor - обработчик для подготовки unaryInterceptor для grpc сервера
 func (b *IPBlocker) unaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	if b.cidr == nil {
 		return handler(ctx, req)
@@ -84,6 +89,7 @@ func (b *IPBlocker) unaryInterceptor(ctx context.Context, req interface{}, info 
 	return handler(ctx, req)
 }
 
+// IPBlockInterceptor - unaryInterceptor для grpc сервера по блокировке IP
 func IPBlockInterceptor(cidr string) grpc.UnaryServerInterceptor {
 	blocker := NewIPBlocker(cidr)
 	return blocker.unaryInterceptor

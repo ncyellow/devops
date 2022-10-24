@@ -23,6 +23,7 @@ type GRPCServer struct {
 
 // RunServer блокирующая функция запуска сервера.
 // После запуска встает в ожидание os.Interrupt, syscall.SIGINT, syscall.SIGTERM
+// Функция очень похожа на RunServer из http реализации, но тут другой вариант graceful shutdown.
 func (s *GRPCServer) RunServer() {
 	repo := repository.NewRepository(s.Conf.GeneralCfg())
 

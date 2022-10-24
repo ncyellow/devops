@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+// PgStorageSuite - тесты работы с базой
+// Используем pgxpoolmock.MockPgxPool для mock
 type PgStorageSuite struct {
 	suite.Suite
 	saver    PersistentStorage
@@ -19,12 +21,12 @@ type PgStorageSuite struct {
 	repo     repository.Repository
 }
 
+// TestPgStorageSuite запуск всех тестов PgStorageSuite
 func TestPgStorageSuite(t *testing.T) {
 	suite.Run(t, new(PgStorageSuite))
 }
 
-// SetupSuite перед началом теста стартуем новый сервер httptest.Server делаем так, чтобы тестировать каждый
-// handler отдельно и не сливать все тесты в один
+// SetupTest инициализация. Создаем. Repository, Storage и мокаем базу
 func (suite *PgStorageSuite) SetupTest() {
 
 	conf := config.Config{}
@@ -46,7 +48,7 @@ func (suite *PgStorageSuite) SetupTest() {
 	suite.repo = repo
 }
 
-// TearDownSuite после теста отключаем сервер
+// TearDownSuite после теста вызываем закрытие базы
 func (suite *PgStorageSuite) TearDownTest() {
 	// Проверяем что при Close закрывается пул
 	// Очистка метрик чтобы они не вызывали сохранение - там очень сложная логика
@@ -55,6 +57,7 @@ func (suite *PgStorageSuite) TearDownTest() {
 	suite.saver.Close()
 }
 
+// TestPing проверка пинга
 func (suite *PgStorageSuite) TestPing() {
 	// При пинге проверяем что у нас у нас идет "select 1" запрос
 	tag := []byte("select")
@@ -62,6 +65,8 @@ func (suite *PgStorageSuite) TestPing() {
 	suite.saver.Ping()
 }
 
+// TestLoad проверка основного сценария загрузки. База возвращает нам метрики и мы проверяем что они загружены
+// Repository
 func (suite *PgStorageSuite) TestLoad() {
 
 	counterColumns := []string{"metric_name", "value"}
@@ -91,6 +96,8 @@ func (suite *PgStorageSuite) TestLoad() {
 	suite.repo.Clear()
 }
 
+// TestCounterFailedLoad проверка кейса когда формат counter метрик не соответствует базе
+// В результате такой ошибки метрики не будут прочитаны
 func (suite *PgStorageSuite) TestCounterFailedLoad() {
 
 	counterColumns := []string{"metric_name", "value"}
@@ -122,6 +129,8 @@ func (suite *PgStorageSuite) TestCounterFailedLoad() {
 	suite.repo.Clear()
 }
 
+// TestGaugeFailedLoad проверка кейса когда формат gauge метрик не соответствует базе
+// В результате такой ошибки метрики не будут прочитаны
 func (suite *PgStorageSuite) TestGaugeFailedLoad() {
 
 	counterColumns := []string{"metric_name", "value"}
@@ -153,6 +162,7 @@ func (suite *PgStorageSuite) TestGaugeFailedLoad() {
 	suite.repo.Clear()
 }
 
+// TestGaugeQueryFailedLoad проверка кейса когда запрос gauge метрик падает с ошибкой. Метрики будут пустые
 func (suite *PgStorageSuite) TestGaugeQueryFailedLoad() {
 
 	counterColumns := []string{"metric_name", "value"}
@@ -178,6 +188,7 @@ func (suite *PgStorageSuite) TestGaugeQueryFailedLoad() {
 	suite.repo.Clear()
 }
 
+// TestCounterQueryFailedLoad проверка кейса когда запрос counter метрик падает с ошибкой. Метрики будут пустые
 func (suite *PgStorageSuite) TestCounterQueryFailedLoad() {
 
 	suite.mockPool.EXPECT().Query(gomock.Any(), `select "metric_name", "value" FROM "counters"`, gomock.Any()).
@@ -185,7 +196,7 @@ func (suite *PgStorageSuite) TestCounterQueryFailedLoad() {
 
 	err := suite.saver.Load()
 
-	// Будет ошибка, так как упал запрос за метриками gauge
+	// Будет ошибка, так как упал запрос за метриками counter
 	assert.Error(suite.T(), err)
 
 	// список метрик пустой так как выпала ошибка

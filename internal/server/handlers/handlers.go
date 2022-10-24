@@ -170,12 +170,7 @@ func (h *Handler) Update() http.HandlerFunc {
 				rw.Write([]byte("incorrect metric value"))
 				return
 			}
-			err = h.repo.UpdateGauge(metricName, value)
-			if err != nil {
-				rw.WriteHeader(http.StatusInternalServerError)
-				rw.Write([]byte("incorrect metric name "))
-				return
-			}
+			h.repo.UpdateGauge(metricName, value)
 		case repository.Counter:
 			value, err := strconv.ParseInt(metricValue, 10, 64)
 			//! Второй параметр обязательно кастится в int64
@@ -184,13 +179,7 @@ func (h *Handler) Update() http.HandlerFunc {
 				rw.Write([]byte("incorrect metric value"))
 				return
 			}
-			err = h.repo.UpdateCounter(metricName, value)
-			//! Сейчас проблема только одна - ошибка при кривом имени метрики
-			if err != nil {
-				rw.WriteHeader(http.StatusInternalServerError)
-				rw.Write([]byte("incorrect metric name"))
-				return
-			}
+			h.repo.UpdateCounter(metricName, value)
 		default:
 			rw.WriteHeader(http.StatusNotImplemented)
 			rw.Write([]byte("incorrect metric type"))

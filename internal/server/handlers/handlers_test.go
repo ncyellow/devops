@@ -431,6 +431,17 @@ func (suite *HandlersSuite) TestUpdateValueJSONHandler() {
 				body:       `not found`,
 			},
 		},
+		{
+			name:        "incorrect metric type",
+			request:     "/update/",
+			requestType: "POST",
+			contentType: "application/json",
+			body:        []byte(`{"id":"jsonCounter","type":"superCounter","delta": 123}`),
+			want: want{
+				statusCode: http.StatusInternalServerError,
+				body:       `incorrect metric type`,
+			},
+		},
 	}
 	suite.runTableTests(testData)
 }

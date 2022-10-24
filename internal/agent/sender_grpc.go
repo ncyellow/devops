@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+// GRPCSender структура для отправки на сервер по grpc
 type GRPCSender struct {
 	conf   *config.Config
 	conn   *grpc.ClientConn
@@ -18,7 +19,6 @@ type GRPCSender struct {
 
 // SendMetricsBatch отправляет все метрики одной пачкой на указанный url
 func (g *GRPCSender) SendMetricsBatch(dataSource []repository.Metrics) {
-	log.Info().Msgf("SendMetricsBatch - %d", len(dataSource))
 	// Если метрик данных нет сразу на выход
 	if len(dataSource) == 0 {
 		return
@@ -62,7 +62,8 @@ func (g *GRPCSender) SendMetricsBatch(dataSource []repository.Metrics) {
 	}
 }
 
-// SendMetrics отправляет все метрики одной пачкой на указанный url
+// SendMetrics отправляет все метрики одной пачкой на указанный url,
+// это мы делаем только http для совместимости со старыми автотестами
 func (g *GRPCSender) SendMetrics(dataSource []repository.Metrics) {
 	// Если метрик данных нет сразу на выход
 	if len(dataSource) == 0 {
@@ -70,7 +71,7 @@ func (g *GRPCSender) SendMetrics(dataSource []repository.Metrics) {
 	}
 }
 
+// Close общая функция очистки ресурсов. Для http не требуется
 func (g *GRPCSender) Close() {
-	// Общая функция очистки ресурсов. для http не требуется
 	g.conn.Close()
 }

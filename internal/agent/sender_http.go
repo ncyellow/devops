@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// HTTPSender структура для реализации отправки по http
 type HTTPSender struct {
 	conf      *config.Config
 	urlBatch  string
@@ -63,6 +64,6 @@ func (s *HTTPSender) SendMetrics(dataSource []repository.Metrics) {
 	}
 }
 
+// Close общая функция очистки ресурсов. Для http не требуется
 func (s *HTTPSender) Close() {
-	// Общая функция очистки ресурсов. для http не требуется
 }

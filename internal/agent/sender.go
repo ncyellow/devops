@@ -15,12 +15,14 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+// Sender интерфейс отправки данных на сервер
 type Sender interface {
 	SendMetricsBatch(dataSource []repository.Metrics)
 	SendMetrics(dataSource []repository.Metrics)
 	Close()
 }
 
+// CreateSender - factory функция для выбора реализации отправки по конфигурации
 func CreateSender(conf *config.Config) Sender {
 	// По дефолту у нас http, только если задан GRPCAddress entrypoint, мы переходим на grpc
 	if conf.GRPCAddress != "" {
@@ -29,8 +31,6 @@ func CreateSender(conf *config.Config) Sender {
 		if err != nil {
 			log.Fatal().Err(err)
 		}
-		// получаем переменную интерфейсного типа UsersClient,
-		// через которую будем отправлять сообщения
 		client := pb.NewMetricsClient(conn)
 		return &GRPCSender{
 			conf:   conf,

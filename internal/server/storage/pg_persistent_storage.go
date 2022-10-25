@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/driftprogramming/pgxpoolmock"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rs/zerolog/log"
 
@@ -33,7 +34,7 @@ func RunStorageSaver(pStore PersistentStorage, interval time.Duration) {
 // Использую связку pgx + pgxpool это дает нам thread safety pool коннектов
 type PgPersistentStorage struct {
 	conf *config.Config
-	pool *pgxpool.Pool
+	pool pgxpoolmock.PgxPool
 	repo repository.Repository
 }
 
@@ -51,7 +52,8 @@ func NewPgStorage(conf *config.Config, repo repository.Repository) (*PgPersisten
 }
 
 func (p *PgPersistentStorage) Ping() error {
-	return p.pool.Ping(context.Background())
+	_, err := p.pool.Exec(context.Background(), ";")
+	return err
 }
 
 func (p *PgPersistentStorage) Close() {

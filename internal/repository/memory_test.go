@@ -16,8 +16,7 @@ func TestMapRepositoryGauge(t *testing.T) {
 	repo := NewRepository(&genconfig.GeneralConfig{})
 
 	// обновление
-	err := repo.UpdateGauge("testGauge", 100.0)
-	assert.NoError(t, err)
+	repo.UpdateGauge("testGauge", 100.0)
 
 	// чтение
 	val, ok := repo.Gauge("testGauge")
@@ -25,8 +24,7 @@ func TestMapRepositoryGauge(t *testing.T) {
 	assert.Equal(t, true, ok)
 
 	// обновляем повторно
-	err = repo.UpdateGauge("testGauge", 300.0)
-	assert.NoError(t, err)
+	repo.UpdateGauge("testGauge", 300.0)
 
 	// проверяем что старое значение перезаписалось
 	val, ok = repo.Gauge("testGauge")
@@ -45,8 +43,7 @@ func TestMapRepositoryCounter(t *testing.T) {
 	repo := NewRepository(&genconfig.GeneralConfig{})
 
 	// обновление
-	err := repo.UpdateCounter("testCounter", 100)
-	assert.NoError(t, err)
+	repo.UpdateCounter("testCounter", 100)
 
 	// чтение
 	val, ok := repo.Counter("testCounter")
@@ -54,8 +51,7 @@ func TestMapRepositoryCounter(t *testing.T) {
 	assert.Equal(t, true, ok)
 
 	// обновляем еще раз
-	err = repo.UpdateCounter("testCounter", 100)
-	assert.NoError(t, err)
+	repo.UpdateCounter("testCounter", 100)
 
 	// проверяем что счетчик приплюсовал значение
 	val, ok = repo.Counter("testCounter")
@@ -113,11 +109,9 @@ func TestMapRepositoryStringer(t *testing.T) {
 	repo := NewRepository(&genconfig.GeneralConfig{})
 
 	// обновление
-	err := repo.UpdateGauge("testGauge", 100.0)
-	assert.NoError(t, err)
+	repo.UpdateGauge("testGauge", 100.0)
 
-	err = repo.UpdateCounter("testCounter", 100)
-	assert.NoError(t, err)
+	repo.UpdateCounter("testCounter", 100)
 
 	correctHTML := `
 	<html>
@@ -207,15 +201,28 @@ func TestMarshalJSON(t *testing.T) {
 
 	repo := NewRepository(&genconfig.GeneralConfig{})
 
-	err := repo.UpdateGauge("testGaugeMetric", 100)
-	assert.NoError(t, err)
-	err = repo.UpdateCounter("testCounterMetric", 120)
-	assert.NoError(t, err)
+	repo.UpdateGauge("testGaugeMetric", 100)
+
+	repo.UpdateCounter("testCounterMetric", 120)
 
 	jsRepo, err := json.Marshal(repo)
 	assert.NoError(t, err)
 
 	assert.JSONEq(t, string(jsRepo), `[{"id":"testGaugeMetric","type":"gauge","value":100},{"id":"testCounterMetric","type":"counter","delta":120}]`)
+}
+
+// TestMapRepositoryClear проверяем очистку репозитория
+func TestMapRepositoryClear(t *testing.T) {
+	t.Parallel()
+
+	repo := NewRepository(&genconfig.GeneralConfig{})
+
+	repo.UpdateGauge("testGaugeMetric", 100)
+	repo.UpdateCounter("testCounterMetric", 120)
+	assert.Equal(t, len(repo.ToMetrics()), 2)
+
+	repo.Clear()
+	assert.Equal(t, len(repo.ToMetrics()), 0)
 }
 
 // TestUnmarshalJSON тест десериализации из json

@@ -28,9 +28,16 @@ func BenchmarkSendMetricsBatch(b *testing.B) {
 		})
 	}
 
+	sender := HTTPSender{
+		conf:      &config.Config{},
+		urlBatch:  "",
+		urlSingle: "http://unknown/updates/",
+		encoder:   nil,
+	}
+
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		SendMetricsBatch(metrics, "http://unknown/updates/", nil)
+		sender.SendMetricsBatch(metrics)
 	}
 }
 
@@ -41,6 +48,7 @@ func TestRunSender(t *testing.T) {
 
 	// Канал по которому метрики откуда sender модуль будет получать метрики и отправлять на сервер
 	metricChannel := make(chan []repository.Metrics, 1)
+	grpcMetricChannel := make(chan []repository.Metrics, 1)
 
 	source := RuntimeSource{}
 	source.Update()
@@ -54,21 +62,33 @@ func TestRunSender(t *testing.T) {
 		PollInterval:   genconfig.Duration{Duration: time.Second * 32},
 	}
 
+	grpcConf := &config.Config{
+		GeneralConfig: genconfig.GeneralConfig{
+			GRPCAddress: "localhost:8080",
+			CryptoKey:   "/path/to/key.pem",
+		},
+		ReportInterval: genconfig.Duration{Duration: time.Second * 3},
+		PollInterval:   genconfig.Duration{Duration: time.Second * 32},
+	}
+
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go RunSender(ctx, conf, metricChannel, &wg)
 
 	wg.Add(1)
-	go RunSender(ctx, conf, metricChannel, &wg)
-
-	wg.Add(1)
-	go RunSender(ctx, conf, metricChannel, &wg)
+	go RunSender(ctx, grpcConf, grpcMetricChannel, &wg)
 
 	// Отправляем данные для отправки.
 	metricChannel <- prepareGauges(source.Gauges(), "")
+	metricChannel <- prepareCounters(source.Counters(), "")
+
+	// Отправляем данные для отправки.
+	grpcMetricChannel <- prepareGauges(source.Gauges(), "")
+	grpcMetricChannel <- prepareCounters(source.Counters(), "")
 
 	time.Sleep(time.Second * 5)
 	close(metricChannel)
+	close(grpcMetricChannel)
 	cancel()
 	wg.Wait()
 

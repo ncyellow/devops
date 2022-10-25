@@ -1,10 +1,10 @@
 package repository
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 
 	"github.com/ncyellow/devops/internal/hash"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMetrics_CalcHash(t *testing.T) {

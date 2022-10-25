@@ -44,6 +44,7 @@ func main() {
 		}
 	}
 
+	flag.StringVar(&cfg.GRPCAddress, "grpc", "", "grpc endpoint")
 	flag.StringVar(&cfg.Address, "a", "localhost:8080", "address in the format host:port")
 	flag.DurationVar(&cfg.StoreInterval.Duration, "i", time.Second*300, "store interval in the format 300s")
 	flag.BoolVar(&cfg.Restore, "r", true, "restore from file. true if needed")
@@ -51,6 +52,7 @@ func main() {
 	flag.StringVar(&cfg.SecretKey, "k", "", "key for hash metrics")
 	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "private server crypto key")
 	flag.StringVar(&cfg.DatabaseConn, "d", "", "connection string to postgresql")
+	flag.StringVar(&cfg.TrustedSubNet, "t", "", "trusted subnet cidr")
 
 	// Сначала парсим командную строку
 	flag.Parse()
@@ -63,6 +65,6 @@ func main() {
 
 	log.Info().Msgf("Настройки запуска сервера - %#v\n", cfg)
 
-	server := server.Server{Conf: &cfg}
+	server := server.CreateServer(&cfg)
 	server.RunServer()
 }

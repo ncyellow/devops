@@ -33,29 +33,28 @@ func NewRepository(conf *genconfig.GeneralConfig) Repository {
 	return &repo
 }
 
-func (s *MapRepository) UpdateGauge(name string, value float64) error {
+func (s *MapRepository) UpdateGauge(name string, value float64) {
 	s.gaugesLock.Lock()
 	s.gauges[name] = value
 	s.gaugesLock.Unlock()
-	return nil
 }
 
-func (s *MapRepository) UpdateCounter(name string, value int64) error {
+func (s *MapRepository) UpdateCounter(name string, value int64) {
 	s.countersLock.Lock()
 	s.counters[name] = s.counters[name] + value
 	s.countersLock.Unlock()
-	return nil
 }
 
 func (s *MapRepository) UpdateMetric(metric Metrics) error {
 	switch metric.MType {
 	case Gauge:
-		return s.UpdateGauge(metric.ID, *metric.Value)
+		s.UpdateGauge(metric.ID, *metric.Value)
 	case Counter:
-		return s.UpdateCounter(metric.ID, *metric.Delta)
+		s.UpdateCounter(metric.ID, *metric.Delta)
 	default:
 		return fmt.Errorf("metric with type %s doesn't exsist", metric.MType)
 	}
+	return nil
 }
 
 func (s *MapRepository) Gauge(name string) (val float64, ok bool) {
@@ -155,6 +154,17 @@ func (s *MapRepository) FromMetrics(metrics []Metrics) {
 			}
 		}
 	}
+}
+
+// Clear - очищаем все метрики репозитория
+func (s *MapRepository) Clear() {
+	s.gaugesLock.Lock()
+	s.gauges = make(map[string]float64)
+	s.gaugesLock.Unlock()
+
+	s.countersLock.Lock()
+	s.counters = make(map[string]int64)
+	s.countersLock.Unlock()
 }
 
 // MarshalJSON - реализация интерфейса Marshaler

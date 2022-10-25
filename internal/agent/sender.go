@@ -1,30 +1,63 @@
 package agent
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"sync"
 	"time"
 
 	"github.com/ncyellow/devops/internal/agent/config"
 	"github.com/ncyellow/devops/internal/crypto/rsa"
+	pb "github.com/ncyellow/devops/internal/grpc/proto"
 	"github.com/ncyellow/devops/internal/repository"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
+
+// Sender интерфейс отправки данных на сервер
+type Sender interface {
+	SendMetricsBatch(dataSource []repository.Metrics)
+	SendMetrics(dataSource []repository.Metrics)
+	Close()
+}
+
+// CreateSender - factory функция для выбора реализации отправки по конфигурации
+func CreateSender(conf *config.Config) Sender {
+	// По дефолту у нас http, только если задан GRPCAddress entrypoint, мы переходим на grpc
+	if conf.GRPCAddress != "" {
+		// устанавливаем соединение с сервером
+		conn, err := grpc.Dial(conf.GRPCAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			log.Fatal().Err(err)
+		}
+		client := pb.NewMetricsClient(conn)
+		return &GRPCSender{
+			conf:   conf,
+			conn:   conn,
+			client: client,
+		}
+	}
+	encoder, err := rsa.NewEncoder(conf.CryptoKey)
+	if err != nil {
+		log.Info().Err(err)
+	}
+	return &HTTPSender{
+		conf:      conf,
+		urlBatch:  fmt.Sprintf("http://%s/updates/", conf.Address),
+		urlSingle: fmt.Sprintf("http://%s/update/", conf.Address),
+		encoder:   encoder,
+	}
+
+}
 
 // RunSender запускает цикл по обработке таймера отправки метрик из канала out на сервер
 func RunSender(ctx context.Context, conf *config.Config, out <-chan []repository.Metrics, wg *sync.WaitGroup) {
 
 	repo := repository.NewRepository(conf.GeneralCfg())
-	encoder, err := rsa.NewEncoder(conf.CryptoKey)
-	if err != nil {
-		log.Info().Err(err)
-	}
-	url := fmt.Sprintf("http://%s/updates/", conf.Address)
-	urlSingle := fmt.Sprintf("http://%s/update/", conf.Address)
+
+	sender := CreateSender(conf)
+	defer sender.Close()
 
 	tickerReport := time.NewTicker(conf.ReportInterval.Duration)
 	defer tickerReport.Stop()
@@ -33,9 +66,9 @@ func RunSender(ctx context.Context, conf *config.Config, out <-chan []repository
 		select {
 		case <-tickerReport.C:
 			// Две отправки для совместимости со старой версией, по старому протоколу
-			SendMetrics(repo.ToMetrics(), urlSingle)
+			sender.SendMetrics(repo.ToMetrics())
 			// По новой через Batch
-			SendMetricsBatch(repo.ToMetrics(), url, encoder)
+			sender.SendMetricsBatch(repo.ToMetrics())
 		case metrics, ok := <-out:
 			if !ok {
 				wg.Done()
@@ -48,49 +81,5 @@ func RunSender(ctx context.Context, conf *config.Config, out <-chan []repository
 			wg.Done()
 			return
 		}
-	}
-}
-
-// SendMetricsBatch отправляет все метрики одной пачкой на указанный url
-func SendMetricsBatch(dataSource []repository.Metrics, url string, encoder *rsa.Encoder) {
-	// Если метрик данных нет сразу на выход
-	if len(dataSource) == 0 {
-		return
-	}
-
-	buf, err := json.Marshal(dataSource)
-	if err != nil {
-		log.Fatal().Err(err)
-	}
-	if encoder != nil {
-		buf, err = encoder.Encode(buf)
-		if err != nil {
-			log.Info().Msgf("проблемы с шифрованием отправлять не будем. %s", err.Error())
-			return
-		}
-	}
-
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(buf))
-	if err != nil {
-		log.Info().Msgf("%s", err.Error())
-		return
-	}
-	resp.Body.Close()
-}
-
-// SendMetrics отправляет метрики на указанный url
-func SendMetrics(dataSource []repository.Metrics, url string) {
-	client := http.Client{Timeout: 100 * time.Millisecond}
-	for _, metric := range dataSource {
-		buf, err := json.Marshal(metric)
-		if err != nil {
-			log.Fatal().Err(err)
-		}
-		resp, err := client.Post(url, "application/json", bytes.NewBuffer(buf))
-		if err != nil {
-			log.Info().Msgf("%s", err.Error())
-			continue
-		}
-		resp.Body.Close()
 	}
 }

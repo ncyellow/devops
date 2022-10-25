@@ -43,9 +43,9 @@ func (m *Metrics) CalcHash(encodeFunc hash.EncodeFunc) string {
 // представляет сохранение в долговременное хранилище файл или бд
 type Repository interface {
 	// UpdateGauge обновить значение метрики типа gauge
-	UpdateGauge(name string, value float64) error
+	UpdateGauge(name string, value float64)
 	// UpdateCounter обновить значение метрики типа counter
-	UpdateCounter(name string, value int64) error
+	UpdateCounter(name string, value int64)
 
 	// Gauge возвращает текущее значение метрики типа gauge
 	Gauge(name string) (val float64, ok bool)
@@ -63,4 +63,7 @@ type Repository interface {
 
 	// ToMetrics экспорт данных репозитория в []Metrics
 	ToMetrics() []Metrics
+
+	// Clear Очистка репозитория
+	Clear()
 }
